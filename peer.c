@@ -3,6 +3,12 @@
 #include <stdlib.h>
 
 #include "peer.h"
+#include "recv_thread.h"
+
+const struct timeval dragonnet_timeout = {
+	.tv_sec = 30,
+	.tv_usec = 0
+};
 
 DragonnetPeer *dragonnet_connect(char *addr)
 {
@@ -14,8 +20,23 @@ DragonnetPeer *dragonnet_connect(char *addr)
 	p->sock = socket(AF_INET6, SOCK_STREAM, 0);
 	p->raddr = dragonnet_addr_parse_str(addr);
 
+	if (setsockopt(p->sock, SOL_SOCKET, SO_RCVTIMEO, &dragonnet_timeout,
+			sizeof dragonnet_timeout) < 0) {
+		perror("setsockopt");
+		dragonnet_peer_delete(p);
+		return NULL;
+	}
+
+	if (setsockopt(p->sock, SOL_SOCKET, SO_SNDTIMEO, &dragonnet_timeout,
+			sizeof dragonnet_timeout) < 0) {
+		perror("setsockopt");
+		dragonnet_peer_delete(p);
+		return NULL;
+	}
+
 	struct sockaddr_in6 sock_addr = dragonnet_addr_sock(p->raddr);
-	if (connect(p->sock, (const struct sockaddr *) &sock_addr, sizeof sock_addr) < 0) {
+	if (connect(p->sock, (const struct sockaddr *) &sock_addr,
+			sizeof sock_addr) < 0) {
 		perror("connect");
 		dragonnet_peer_delete(p);
 		return NULL;
@@ -36,13 +57,21 @@ DragonnetPeer *dragonnet_connect(char *addr)
 	return p;
 }
 
+void dragonnet_peer_run(DragonnetPeer *p)
+{
+	pthread_t recv_thread;
+	pthread_create(&recv_thread, NULL, &dragonnet_peer_recv_thread, p);
+	pthread_join(recv_thread, NULL);
+}
+
 void dragonnet_peer_close(DragonnetPeer *p)
 {
 	pthread_rwlock_wrlock(p->mu);
 
-	assert(p->state == DRAGONNET_PEER_ACTIVE);
-	shutdown(p->sock, SHUT_RDWR);
-	p->state++;
+	if (p->state == DRAGONNET_PEER_ACTIVE) {
+		shutdown(p->sock, SHUT_RDWR);
+		p->state++;
+	}
 
 	pthread_rwlock_unlock(p->mu);
 }

@@ -20,7 +20,8 @@ typedef struct {
 	pthread_rwlock_t *mu;
 } DragonnetListener;
 
-DragonnetListener *dragonnet_listener_new(char *addr, void (*on_connect)(DragonnetPeer *p));
+DragonnetListener *dragonnet_listener_new(char *addr,
+		void (*on_connect)(DragonnetPeer *p));
 void dragonnet_listener_run(DragonnetListener *l);
 void dragonnet_listener_close(DragonnetListener *l);
 void dragonnet_listener_delete(DragonnetListener *l);

@@ -23,6 +23,20 @@ static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
 	p->laddr = l->laddr;
 	p->raddr = dragonnet_addr_parse_sock(addr);
 
+	if (setsockopt(p->sock, SOL_SOCKET, SO_RCVTIMEO, &dragonnet_timeout,
+			sizeof dragonnet_timeout) < 0) {
+		perror("setsockopt");
+		dragonnet_peer_delete(p);
+		return NULL;
+	}
+
+	if (setsockopt(p->sock, SOL_SOCKET, SO_SNDTIMEO, &dragonnet_timeout,
+			sizeof dragonnet_timeout) < 0) {
+		perror("setsockopt");
+		dragonnet_peer_delete(p);
+		return NULL;
+	}
+
 	pthread_rwlock_unlock(p->mu);
 	return p;
 }
@@ -31,7 +45,8 @@ static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
 // Listener
 // --------
 
-DragonnetListener *dragonnet_listener_new(char *addr, void (*on_connect)(DragonnetPeer *p))
+DragonnetListener *dragonnet_listener_new(char *addr,
+		void (*on_connect)(DragonnetPeer *p))
 {
 	DragonnetListener *l = malloc(sizeof *l);
 	l->mu = malloc(sizeof *l->mu);
@@ -41,8 +56,9 @@ DragonnetListener *dragonnet_listener_new(char *addr, void (*on_connect)(Dragonn
 	l->sock = socket(AF_INET6, SOCK_STREAM, 0);
 	l->on_connect = on_connect;
 
-	int flag = 1;
-	if (setsockopt(l->sock, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof flag) < 0) {
+	int so_reuseaddr = 1;
+	if (setsockopt(l->sock, SOL_SOCKET, SO_REUSEADDR, &so_reuseaddr,
+			sizeof so_reuseaddr) < 0) {
 		perror("setsockopt");
 		dragonnet_listener_delete(l);
 		return NULL;
@@ -101,6 +117,7 @@ void dragonnet_listener_close(DragonnetListener *l)
 
 	assert(l->state == DRAGONNET_LISTENER_ACTIVE);
 	close(l->sock);
+	l->sock = 0;
 	l->state++;
 
 	pthread_rwlock_unlock(l->mu);
