@@ -1,4 +1,3 @@
-#include <arpa/inet.h>
 #include <assert.h>
 #include <netdb.h>
 #include <stdio.h>
@@ -6,7 +5,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include "addr.h"
 #include "listen.h"
 
 // ----
@@ -23,19 +21,7 @@ static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
 
 	p->sock = sock;
 	p->laddr = l->laddr;
-
-	char ip_addr[INET6_ADDRSTRLEN] = {0};
-	inet_ntop(AF_INET6, &addr.sin6_addr, ip_addr, INET6_ADDRSTRLEN);
-
-	char port[6] = {0};
-	sprintf(port, "%d", ntohs(addr.sin6_port));
-
-	int err = getaddrinfo(ip_addr, port, NULL, &p->raddr);
-	if (err != 0) {
-		fprintf(stderr, "invalid network address %s:%s\n", ip_addr, port);
-		dragonnet_peer_delete(p);
-		p = NULL;
-	}
+	p->raddr = dragonnet_addr_parse_sock(addr);
 
 	if (p != NULL)
 		pthread_rwlock_unlock(p->mu);
@@ -64,15 +50,10 @@ DragonnetListener *dragonnet_listener_new(char *addr, void (*on_connect)(Dragonn
 		return NULL;
 	}
 
-	DragonnetAddr net_addr = dragonnet_addr_parse(addr);
-	int err = getaddrinfo(net_addr.ip, net_addr.port, NULL, &l->laddr);
-	if (err != 0) {
-		fprintf(stderr, "invalid network address %s\n", addr);
-		dragonnet_listener_delete(l);
-		return NULL;
-	}
+	l->laddr = dragonnet_addr_parse_str(addr);
+	struct sockaddr_in6 ai_addr = dragonnet_addr_sock(l->laddr);
 
-	if (bind(l->sock, l->laddr->ai_addr, l->laddr->ai_addrlen) < 0) {
+	if (bind(l->sock, (const struct sockaddr *) &ai_addr, sizeof ai_addr) < 0) {
 		perror("bind");
 		dragonnet_listener_delete(l);
 		return NULL;
@@ -129,12 +110,6 @@ void dragonnet_listener_close(DragonnetListener *l)
 
 void dragonnet_listener_delete(DragonnetListener *l)
 {
-	pthread_rwlock_wrlock(l->mu);
-
-	if (l->laddr != NULL)
-		freeaddrinfo(l->laddr);
-
-	pthread_rwlock_unlock(l->mu);
 	pthread_rwlock_destroy(l->mu);
 	free(l);
 }

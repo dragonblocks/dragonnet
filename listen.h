@@ -13,7 +13,7 @@ typedef enum {
 
 typedef struct {
 	int sock;
-	struct addrinfo *laddr;
+	DragonnetAddr laddr;
 	void (*on_connect)(DragonnetPeer *p);
 	DragonnetListenerState state;
 

@@ -3,6 +3,8 @@
 
 #include <pthread.h>
 
+#include "addr.h"
+
 typedef enum {
 	DRAGONNET_PEER_CREATED,
 	DRAGONNET_PEER_ACTIVE,
@@ -11,8 +13,7 @@ typedef enum {
 
 typedef struct {
 	int sock;
-	struct addrinfo *laddr;
-	struct addrinfo *raddr;
+	DragonnetAddr laddr, raddr;
 	DragonnetPeerState state;
 
 	pthread_rwlock_t *mu;
