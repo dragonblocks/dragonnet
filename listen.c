@@ -23,9 +23,7 @@ static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
 	p->laddr = l->laddr;
 	p->raddr = dragonnet_addr_parse_sock(addr);
 
-	if (p != NULL)
-		pthread_rwlock_unlock(p->mu);
-
+	pthread_rwlock_unlock(p->mu);
 	return p;
 }
 
