@@ -28,6 +28,7 @@ int main(int argc, char **argv)
 
 	fclose(fp);
 	fp = fopen("messages.h", "w");
+	fprintf(fp, "#include <stdint.h>\n\n");
 
 	char **msgs;
 	size_t msgs_len = split(&msgs, data, "\n");
