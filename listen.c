@@ -11,10 +11,9 @@
 // Peer
 // ----
 
-static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
-		DragonnetListener *l)
+static bool dragonnet_peer_init_accepted(DragonnetPeer *p, int sock,
+		struct sockaddr_in6 addr, DragonnetListener *l)
 {
-	DragonnetPeer *p = malloc(sizeof *p);
 	p->mu = malloc(sizeof *p->mu);
 	pthread_rwlock_init(p->mu, NULL);
 	pthread_rwlock_wrlock(p->mu);
@@ -26,18 +25,28 @@ static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
 	if (setsockopt(p->sock, SOL_SOCKET, SO_RCVTIMEO, &dragonnet_timeout,
 			sizeof dragonnet_timeout) < 0) {
 		perror("setsockopt");
-		dragonnet_peer_delete(p);
-		return NULL;
+		return false;
 	}
 
 	if (setsockopt(p->sock, SOL_SOCKET, SO_SNDTIMEO, &dragonnet_timeout,
 			sizeof dragonnet_timeout) < 0) {
 		perror("setsockopt");
+		return false;
+	}
+
+	pthread_rwlock_unlock(p->mu);
+	return true;
+}
+
+static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
+		DragonnetListener *l)
+{
+	DragonnetPeer *p = malloc(sizeof *p);
+	if (!dragonnet_peer_init_accepted(p, sock, addr, l)) {
 		dragonnet_peer_delete(p);
 		return NULL;
 	}
 
-	pthread_rwlock_unlock(p->mu);
 	return p;
 }
 

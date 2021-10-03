@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -10,9 +11,8 @@ const struct timeval dragonnet_timeout = {
 	.tv_usec = 0
 };
 
-DragonnetPeer *dragonnet_connect(char *addr)
+static bool dragonnet_peer_init(DragonnetPeer *p, char *addr)
 {
-	DragonnetPeer *p = malloc(sizeof *p);
 	p->mu = malloc(sizeof *p->mu);
 	pthread_rwlock_init(p->mu, NULL);
 	pthread_rwlock_wrlock(p->mu);
@@ -23,23 +23,20 @@ DragonnetPeer *dragonnet_connect(char *addr)
 	if (setsockopt(p->sock, SOL_SOCKET, SO_RCVTIMEO, &dragonnet_timeout,
 			sizeof dragonnet_timeout) < 0) {
 		perror("setsockopt");
-		dragonnet_peer_delete(p);
-		return NULL;
+		return false;
 	}
 
 	if (setsockopt(p->sock, SOL_SOCKET, SO_SNDTIMEO, &dragonnet_timeout,
 			sizeof dragonnet_timeout) < 0) {
 		perror("setsockopt");
-		dragonnet_peer_delete(p);
-		return NULL;
+		return false;
 	}
 
 	struct sockaddr_in6 sock_addr = dragonnet_addr_sock(p->raddr);
 	if (connect(p->sock, (const struct sockaddr *) &sock_addr,
 			sizeof sock_addr) < 0) {
 		perror("connect");
-		dragonnet_peer_delete(p);
-		return NULL;
+		return false;
 	}
 
 	struct sockaddr_in6 sock_name;
@@ -47,13 +44,23 @@ DragonnetPeer *dragonnet_connect(char *addr)
 
 	if (getsockname(p->sock, (struct sockaddr *) &sock_name, &sock_namelen) < 0) {
 		perror("getsockname");
-		dragonnet_peer_delete(p);
-		return NULL;
+		return false;
 	}
 
 	p->laddr = dragonnet_addr_parse_sock(sock_name);
 
 	pthread_rwlock_unlock(p->mu);
+	return true;
+}
+
+DragonnetPeer *dragonnet_connect(char *addr)
+{
+	DragonnetPeer *p = malloc(sizeof *p);
+	if (!dragonnet_peer_init(p, addr)) {
+		dragonnet_peer_delete(p);
+		return NULL;
+	}
+
 	return p;
 }
 
