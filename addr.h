@@ -5,7 +5,7 @@
 
 typedef struct {
 	char ip[INET6_ADDRSTRLEN];
-	char port[5];
+	char port[6];
 } DragonnetAddr;
 
 DragonnetAddr dragonnet_addr_parse_str(char *addr);
