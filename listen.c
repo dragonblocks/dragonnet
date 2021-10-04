@@ -21,18 +21,6 @@ static bool dragonnet_peer_init_accepted(DragonnetPeer *p, int sock,
 	p->laddr = l->laddr;
 	p->raddr = dragonnet_addr_parse_sock(addr);
 
-	if (setsockopt(p->sock, SOL_SOCKET, SO_RCVTIMEO, &dragonnet_timeout,
-			sizeof dragonnet_timeout) < 0) {
-		perror("setsockopt");
-		return false;
-	}
-
-	if (setsockopt(p->sock, SOL_SOCKET, SO_SNDTIMEO, &dragonnet_timeout,
-			sizeof dragonnet_timeout) < 0) {
-		perror("setsockopt");
-		return false;
-	}
-
 	pthread_rwlock_unlock(&p->mu);
 	return true;
 }

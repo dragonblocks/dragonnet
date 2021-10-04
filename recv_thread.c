@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <dragontype/number.h>
-#include <errno.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -21,28 +20,31 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 	while (true) {
 		u16 msg;
 
+		// Copy socket fd so that shutdown doesn't block
 		pthread_rwlock_rdlock(&p->mu);
-		ssize_t len = recv(p->sock, &msg, sizeof msg, MSG_WAITALL);
+		int sock = p->sock;
 		pthread_rwlock_unlock(&p->mu);
 
-		if (len < 0 && errno != EWOULDBLOCK) {
+		ssize_t len = recv(sock, &msg, sizeof msg, MSG_WAITALL);
+
+		if (len < 0) {
 			perror("recv");
 			dragonnet_peer_delete(p);
 			return NULL;
 		}
 
-		// connection closed
-		if ((len >= 0 && len != sizeof msg) || errno == EWOULDBLOCK) {
+		// Connection closed
+		if (len == 0) {
 			pthread_rwlock_wrlock(&p->mu);
 
 			close(p->sock);
-			p->sock = 0;
+			p->sock = -1;
 			p->state++;
 
 			pthread_rwlock_unlock(&p->mu);
 			return NULL;
 		}
 
-		// deserialization
+		// Deserialization
 	}
 }
