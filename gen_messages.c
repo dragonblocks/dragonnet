@@ -18,7 +18,7 @@ static size_t split(char ***strs, char *s, const char *delim)
 	return i;
 }
 
-int main(int argc, char **argv)
+int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 {
 	FILE *fp = fopen("messages.dnet", "r");
 

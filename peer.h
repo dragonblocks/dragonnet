@@ -5,7 +5,7 @@
 
 #include "addr.h"
 
-const extern struct timeval dragonnet_timeout;
+extern const struct timeval dragonnet_timeout;
 
 typedef enum {
 	DRAGONNET_PEER_CREATED,
