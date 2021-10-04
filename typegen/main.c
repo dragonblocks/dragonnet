@@ -20,14 +20,14 @@ static size_t split(char ***strs, char *s, const char *delim)
 
 int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 {
-	FILE *fp = fopen("messages.dnet", "r");
+	FILE *fp = fopen("types.dnet", "r");
 
 	char data[1 << 16];
 	memset(data, 0, sizeof data);
 	fread(data, sizeof *data, sizeof data, fp);
 
 	fclose(fp);
-	fp = fopen("messages.h", "w");
+	fp = fopen("dnet-types.h", "w");
 	fprintf(fp, "#include <dragontype/number.h>\n\n");
 
 	char **msgs;
