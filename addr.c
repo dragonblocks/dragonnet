@@ -1,3 +1,4 @@
+#include <dragonport/asprintf.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,10 +44,11 @@ DragonnetAddr dragonnet_addr_parse_str(char *str)
 	return addr;
 }
 
-void dragonnet_addr_str(char dst[7+INET6_ADDRSTRLEN], DragonnetAddr addr)
+char *dragonnet_addr_str(DragonnetAddr addr)
 {
-	memset(dst, 0, 7+INET6_ADDRSTRLEN);
-	sprintf(dst, "[%s]:%s", addr.ip, addr.port);
+	char *ptr;
+	asprintf(&ptr, "[%s]:%s", addr.ip, addr.port);
+	return ptr;
 }
 
 DragonnetAddr dragonnet_addr_parse_sock(struct sockaddr_in6 ai_addr)
