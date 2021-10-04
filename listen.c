@@ -14,9 +14,8 @@
 static bool dragonnet_peer_init_accepted(DragonnetPeer *p, int sock,
 		struct sockaddr_in6 addr, DragonnetListener *l)
 {
-	p->mu = malloc(sizeof *p->mu);
-	pthread_rwlock_init(p->mu, NULL);
-	pthread_rwlock_wrlock(p->mu);
+	pthread_rwlock_init(&p->mu, NULL);
+	pthread_rwlock_wrlock(&p->mu);
 
 	p->sock = sock;
 	p->laddr = l->laddr;
@@ -34,7 +33,7 @@ static bool dragonnet_peer_init_accepted(DragonnetPeer *p, int sock,
 		return false;
 	}
 
-	pthread_rwlock_unlock(p->mu);
+	pthread_rwlock_unlock(&p->mu);
 	return true;
 }
 
@@ -58,9 +57,8 @@ DragonnetListener *dragonnet_listener_new(char *addr,
 		void (*on_connect)(DragonnetPeer *p))
 {
 	DragonnetListener *l = malloc(sizeof *l);
-	l->mu = malloc(sizeof *l->mu);
-	pthread_rwlock_init(l->mu, NULL);
-	pthread_rwlock_wrlock(l->mu);
+	pthread_rwlock_init(&l->mu, NULL);
+	pthread_rwlock_wrlock(&l->mu);
 
 	l->sock = socket(AF_INET6, SOCK_STREAM, 0);
 	l->on_connect = on_connect;
@@ -88,18 +86,18 @@ DragonnetListener *dragonnet_listener_new(char *addr,
 		return NULL;
 	}
 
-	pthread_rwlock_unlock(l->mu);
+	pthread_rwlock_unlock(&l->mu);
 	return l;
 }
 
 void dragonnet_listener_run(DragonnetListener *l)
 {
-	pthread_rwlock_wrlock(l->mu);
+	pthread_rwlock_wrlock(&l->mu);
 
 	assert(l->state == DRAGONNET_LISTENER_CREATED);
 	l->state++;
 
-	pthread_rwlock_unlock(l->mu);
+	pthread_rwlock_unlock(&l->mu);
 
 	while (l->state == DRAGONNET_LISTENER_ACTIVE) {
 		struct sockaddr_in6 clt_addr;
@@ -122,18 +120,18 @@ void dragonnet_listener_run(DragonnetListener *l)
 
 void dragonnet_listener_close(DragonnetListener *l)
 {
-	pthread_rwlock_wrlock(l->mu);
+	pthread_rwlock_wrlock(&l->mu);
 
 	assert(l->state == DRAGONNET_LISTENER_ACTIVE);
 	close(l->sock);
 	l->sock = 0;
 	l->state++;
 
-	pthread_rwlock_unlock(l->mu);
+	pthread_rwlock_unlock(&l->mu);
 }
 
 void dragonnet_listener_delete(DragonnetListener *l)
 {
-	pthread_rwlock_destroy(l->mu);
+	pthread_rwlock_destroy(&l->mu);
 	free(l);
 }

@@ -17,7 +17,7 @@ typedef struct {
 	void (*on_connect)(DragonnetPeer *p);
 	DragonnetListenerState state;
 
-	pthread_rwlock_t *mu;
+	pthread_rwlock_t mu;
 } DragonnetListener;
 
 DragonnetListener *dragonnet_listener_new(char *addr,

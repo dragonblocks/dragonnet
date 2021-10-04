@@ -18,7 +18,7 @@ typedef struct {
 	DragonnetAddr laddr, raddr;
 	DragonnetPeerState state;
 
-	pthread_rwlock_t *mu;
+	pthread_rwlock_t mu;
 } DragonnetPeer;
 
 DragonnetPeer *dragonnet_connect(char *addr);

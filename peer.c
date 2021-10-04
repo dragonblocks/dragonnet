@@ -13,9 +13,8 @@ const struct timeval dragonnet_timeout = {
 
 static bool dragonnet_peer_init(DragonnetPeer *p, char *addr)
 {
-	p->mu = malloc(sizeof *p->mu);
-	pthread_rwlock_init(p->mu, NULL);
-	pthread_rwlock_wrlock(p->mu);
+	pthread_rwlock_init(&p->mu, NULL);
+	pthread_rwlock_wrlock(&p->mu);
 
 	p->sock = socket(AF_INET6, SOCK_STREAM, 0);
 	p->raddr = dragonnet_addr_parse_str(addr);
@@ -49,7 +48,7 @@ static bool dragonnet_peer_init(DragonnetPeer *p, char *addr)
 
 	p->laddr = dragonnet_addr_parse_sock(sock_name);
 
-	pthread_rwlock_unlock(p->mu);
+	pthread_rwlock_unlock(&p->mu);
 	return true;
 }
 
@@ -73,18 +72,18 @@ void dragonnet_peer_run(DragonnetPeer *p)
 
 void dragonnet_peer_close(DragonnetPeer *p)
 {
-	pthread_rwlock_wrlock(p->mu);
+	pthread_rwlock_wrlock(&p->mu);
 
 	if (p->state == DRAGONNET_PEER_ACTIVE) {
 		shutdown(p->sock, SHUT_RDWR);
 		p->state++;
 	}
 
-	pthread_rwlock_unlock(p->mu);
+	pthread_rwlock_unlock(&p->mu);
 }
 
 void dragonnet_peer_delete(DragonnetPeer *p)
 {
-	pthread_rwlock_destroy(p->mu);
+	pthread_rwlock_destroy(&p->mu);
 	free(p);
 }
