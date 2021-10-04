@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <dragontype/number.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,10 +35,10 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 	size_t msgs_len = split(&msgs, data, "\n");
 
 	char *msg = NULL;
-	for (size_t i = 0; i < msgs_len; i++) {
+	for (size_t i = 0; i < msgs_len; ++i) {
 		if (msgs[i][0] != '\t') {
 			if (msg != NULL)
-				fprintf(fp, "} %s;\n", msg);
+				fprintf(fp, "} %s;\n\n", msg);
 
 			msg = msgs[i];
 			fprintf(fp, "typedef struct {\n");
@@ -97,12 +98,30 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 				// Blob
 				strcpy(type, "DragonnetBlob ");
 
-			fprintf(fp, "\t%s%s;\n", type, &tokens[0][1]);
+			fprintf(fp, "\t%s%s;\n", type, tokens[1]);
 			free(tokens);
 		}
 	}
 
-	fprintf(fp, "} %s;\n", msg);
+	fprintf(fp, "} %s;\n\ntypedef enum {\n", msg);
+	for (size_t i = 0; i < msgs_len; ++i) {
+		if (msgs[i][0] == '\t')
+			continue;
+
+		char upper[1 + strlen(msgs[i])];
+		char *ptr = upper;
+		strcpy(upper, msgs[i]);
+
+		while ((*ptr = *ptr ? toupper(*ptr) : '\0'))
+			++ptr;
+
+		if (i == msgs_len-1)
+			fprintf(fp, "\tDRAGONNET_TYPE_%s\n", upper);
+		else
+			fprintf(fp, "\tDRAGONNET_TYPE_%s,\n", upper);
+	}
+
+	fprintf(fp, "} DragonnetType;\n");
 
 	free(msgs);
 	fclose(fp);
