@@ -28,7 +28,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 
 	fclose(fp);
 	fp = fopen("messages.h", "w");
-	fprintf(fp, "#include <stdint.h>\n\n");
+	fprintf(fp, "#include <dragontype/number.h>\n\n");
 
 	char **msgs;
 	size_t msgs_len = split(&msgs, data, "\n");
@@ -47,21 +47,21 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 
 			char type[10];
 			if (strcmp(tokens[0], "\ts8") == 0)
-				strcpy(type, "int8_t ");
+				strcpy(type, "s8 ");
 			else if (strcmp(tokens[0], "\ts16") == 0)
-				strcpy(type, "int16_t ");
+				strcpy(type, "s16 ");
 			else if (strcmp(tokens[0], "\ts32") == 0)
-				strcpy(type, "int32_t ");
+				strcpy(type, "s32 ");
 			else if (strcmp(tokens[0], "\ts64") == 0)
-				strcpy(type, "int64_t ");
+				strcpy(type, "s64 ");
 			else if (strcmp(tokens[0], "\tu8") == 0)
-				strcpy(type, "uint8_t ");
+				strcpy(type, "u8 ");
 			else if (strcmp(tokens[0], "\tu16") == 0)
-				strcpy(type, "uint16_t ");
+				strcpy(type, "u16 ");
 			else if (strcmp(tokens[0], "\tu32") == 0)
-				strcpy(type, "uint32_t ");
+				strcpy(type, "u32 ");
 			else if (strcmp(tokens[0], "\tu64") == 0)
-				strcpy(type, "uint64_t ");
+				strcpy(type, "u64 ");
 
 			fprintf(fp, "\t%s%s;\n", type, tokens[1]);
 			free(tokens);
