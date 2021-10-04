@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <dragontype/number.h>
 #include <errno.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -18,7 +19,7 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 	pthread_rwlock_unlock(&p->mu);
 
 	while (true) {
-		uint16_t msg;
+		u16 msg;
 
 		pthread_rwlock_rdlock(&p->mu);
 		ssize_t len = recv(p->sock, &msg, sizeof msg, MSG_WAITALL);

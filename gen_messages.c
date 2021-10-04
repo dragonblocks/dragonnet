@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include <dragontype/number.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
