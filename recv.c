@@ -1,6 +1,9 @@
+#include <stdio.h>
+#include <unistd.h>
+
 #include <dragonnet/recv.h>
 
-void recv_raw(DragonnetPeer *p, const void *buf, size_t n)
+void recv_raw(DragonnetPeer *p, void *buf, size_t n)
 {
 	pthread_rwlock_rdlock(&p->mu);
 	int sock = p->sock;
