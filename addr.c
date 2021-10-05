@@ -8,38 +8,22 @@
 
 DragonnetAddr dragonnet_addr_parse_str(char *str)
 {
-	// Reverse string for easier splitting
-	char buf[1+strlen(str)];
-	memset(buf, 0, sizeof buf);
+	DragonnetAddr addr = {0};
 
-	for (size_t i = 0; i < strlen(str); ++i)
-		buf[i] = str[strlen(str)-1-i];
-
-	char *r_port = strtok(buf, ":");
-	char r_ip_addr[2+INET6_ADDRSTRLEN];
-
-	char *tok = NULL;
-	while (tok != NULL) {
-		tok = strtok(NULL, ":");
-		strcat(r_ip_addr, tok);
+	size_t colon_i = 0;
+	for (ssize_t i = strlen(str)-1; i >= 0; --i) {
+		if (str[i] == ':') {
+			colon_i = i;
+			break;
+		}
 	}
 
-	// Reverse strings again
-	char ip_addr[1+strlen(r_ip_addr)];
-	memset(ip_addr, 0, sizeof ip_addr);
-
-	for (size_t i = 0; i < strlen(r_ip_addr); ++i)
-		ip_addr[i] = r_ip_addr[strlen(r_ip_addr)-1-i];
-
-	char port[1+strlen(r_port)];
-	memset(port, 0, sizeof port);
-
-	for (size_t i = 0; i < strlen(r_port); ++i)
-		port[i] = r_port[strlen(r_port)-1-i];
-
-	DragonnetAddr addr = {0};
-	strcpy(addr.ip, ip_addr);
-	strcpy(addr.port, port);
+	for (size_t i = 0; i < strlen(str); ++i) {
+		if (i < colon_i)
+			addr.ip[i] = str[i];
+		else if (i > colon_i)
+			addr.port[i-colon_i-1] = str[i];
+	}
 
 	return addr;
 }
