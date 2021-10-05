@@ -26,7 +26,6 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 		pthread_rwlock_unlock(&p->mu);
 
 		ssize_t len = recv(sock, &msg, sizeof msg, MSG_WAITALL);
-
 		if (len < 0) {
 			perror("recv");
 			dragonnet_peer_delete(p);

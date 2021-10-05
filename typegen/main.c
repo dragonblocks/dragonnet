@@ -44,8 +44,9 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 	fp = NULL;
 
 	FILE *c_fp = fopen("dnet-types.c", "w");
-	fprintf(c_fp, "#include \"dnet-types.h\"\n");
+	fprintf(c_fp, "#include <dragonnet/recv.h>\n");
 	fprintf(c_fp, "#include <dragonnet/send.h>\n\n");
+	fprintf(c_fp, "#include \"dnet-types.h\"\n\n");
 
 	FILE *h_fp = fopen("dnet-types.h", "w");
 	fprintf(h_fp, "#include <dragontype/number.h>\n\n");
@@ -87,7 +88,11 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 			char **tokens;
 			size_t tokens_len = split(&tokens, msgs[i], " ");
 
-			fprintf(c_fp, "\tsend_%s(p, type.%s);\n", &tokens[0][1], tokens[1]);
+			if (i >= msgs_len-1 || msgs[1+i][0] != '\t')
+				fprintf(c_fp, "\tsend_%s(p, true, type.%s);\n", &tokens[0][1], tokens[1]);
+			else
+				fprintf(c_fp, "\tsend_%s(p, false, type.%s);\n", &tokens[0][1], tokens[1]);
+
 			free_split(tokens, tokens_len);
 			tokens = NULL;
 		}
