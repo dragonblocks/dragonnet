@@ -5,6 +5,6 @@
 
 #include <dragonnet/peer.h>
 
-void send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n);
+void dragonnet_send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n);
 
 #endif

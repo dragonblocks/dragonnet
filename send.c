@@ -3,7 +3,7 @@
 
 #include <dragonnet/send.h>
 
-void send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n)
+void dragonnet_send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n)
 {
 	pthread_rwlock_rdlock(&p->mu);
 	int sock = p->sock;

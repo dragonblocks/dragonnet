@@ -3,6 +3,6 @@
 
 #include <dragonnet/peer.h>
 
-void recv_raw(DragonnetPeer *p, void *buf, size_t n);
+void dragonnet_recv_raw(DragonnetPeer *p, void *buf, size_t n);
 
 #endif
