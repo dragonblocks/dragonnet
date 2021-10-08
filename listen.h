@@ -14,14 +14,18 @@ typedef enum {
 typedef struct {
 	int sock;
 	DragonnetAddr laddr;
-	void (*on_connect)(DragonnetPeer *p);
 	DragonnetListenerState state;
+	pthread_t accept_thread;
+
+	void (*on_connect)(DragonnetPeer *);
+	void (*on_recv_type)(struct dragonnet_peer *, u16);
 
 	pthread_rwlock_t mu;
 } DragonnetListener;
 
 DragonnetListener *dragonnet_listener_new(char *addr,
-		void (*on_connect)(DragonnetPeer *p));
+		void (*on_connect)(DragonnetPeer *p),
+		void (*on_recv_type)(struct dragonnet_peer *, u16));
 void dragonnet_listener_run(DragonnetListener *l);
 void dragonnet_listener_close(DragonnetListener *l);
 void dragonnet_listener_delete(DragonnetListener *l);

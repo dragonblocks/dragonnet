@@ -18,14 +18,14 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 	pthread_rwlock_unlock(&p->mu);
 
 	while (true) {
-		u16 msg;
+		u16 type;
 
 		// Copy socket fd so that shutdown doesn't block
 		pthread_rwlock_rdlock(&p->mu);
 		int sock = p->sock;
 		pthread_rwlock_unlock(&p->mu);
 
-		ssize_t len = recv(sock, &msg, sizeof msg, MSG_WAITALL);
+		ssize_t len = recv(sock, &type, sizeof type, MSG_WAITALL);
 		if (len < 0) {
 			perror("recv");
 			dragonnet_peer_delete(p);
@@ -44,6 +44,13 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 			return NULL;
 		}
 
-		// Deserialization
+		type = be16toh(type);
+
+		pthread_rwlock_rdlock(&p->mu);
+		void (*on_recv_type)(struct dragonnet_peer *, u16) = p->on_recv_type;
+		pthread_rwlock_unlock(&p->mu);
+
+		if (on_recv_type != NULL)
+			on_recv_type(p, type);
 	}
 }

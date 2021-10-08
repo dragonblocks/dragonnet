@@ -18,11 +18,12 @@ DragonnetAddr dragonnet_addr_parse_str(char *str)
 		}
 	}
 
+	size_t ip_addr_i = 0, port_i = 0;
 	for (size_t i = 0; i < strlen(str); ++i) {
-		if (i < colon_i)
-			addr.ip[i] = str[i];
+		if (i < colon_i && str[i] != '[' && str[i] != ']')
+			addr.ip[ip_addr_i++] = str[i];
 		else if (i > colon_i)
-			addr.port[i-colon_i-1] = str[i];
+			addr.port[port_i++] = str[i];
 	}
 
 	return addr;
