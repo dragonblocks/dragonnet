@@ -1,9 +1,9 @@
 #ifndef _DRAGONNET_PEER_H_
 #define _DRAGONNET_PEER_H_
 
-#include <pthread.h>
-#include <dragontype/number.h>
 #include <dragonnet/addr.h>
+#include <dragontype/number.h>
+#include <pthread.h>
 
 typedef enum {
 	DRAGONNET_PEER_CREATED,

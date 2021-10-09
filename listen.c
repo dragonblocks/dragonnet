@@ -1,6 +1,6 @@
 #include <assert.h>
-#include <dragonnet/recv.h>
 #include <dragonnet/listen.h>
+#include <dragonnet/recv.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>

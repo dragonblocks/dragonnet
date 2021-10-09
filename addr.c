@@ -1,10 +1,9 @@
+#include <dragonnet/addr.h>
 #include <dragonport/asprintf.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "addr.h"
 
 DragonnetAddr dragonnet_addr_parse_str(char *str)
 {
