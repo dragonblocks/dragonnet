@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <dragonport/asprintf.h>
 #include <dragontype/number.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -146,132 +147,60 @@ static void gen_serializers(FILE *c_fp)
 static void gen_deserializers(FILE *c_fp)
 {
 	for (u8 bits = 8; bits <= 64; bits *= 2) {
-		char *fmt_u = "__attribute__((unused)) static u%d recv_u%d(DragonnetPeer *p)\n";
-		char *fmt_s = "__attribute__((unused)) static s%d recv_s%d(DragonnetPeer *p)\n";
+		char *fmt = "__attribute__((unused)) static void recv_n%d(DragonnetPeer *p, void *buf)\n";
 
-		fprintf(c_fp, fmt_u, bits, bits);
+		fprintf(c_fp, fmt, bits);
 		fprintf(c_fp, "{\n");
 		fprintf(c_fp, "\tu%d be;\n", bits);
 		fprintf(c_fp, "\tdragonnet_recv_raw(p, &be, sizeof be);\n");
-		fprintf(c_fp, "\treturn be%dtoh(be);\n", bits);
+		fprintf(c_fp, "\tbe = be%dtoh(be);\n", bits);
+		fprintf(c_fp, "\tmemcpy(buf, &be, sizeof be);\n");
 		fprintf(c_fp, "}\n\n");
+	}
 
-		fprintf(c_fp, fmt_s, bits, bits);
-		fprintf(c_fp, "{\n");
-		fprintf(c_fp, "\treturn (s%d) recv_u%d(p);\n", bits, bits);
-		fprintf(c_fp, "}\n\n");
+	for (u8 elems = 2; elems <= 4; ++elems) {
+		for (u8 bits = 8; bits <= 64; bits *= 2) {
+			char *fmt = "__attribute__((unused)) static void recv_v%dn%d(DragonnetPeer *p, void *buf)\n";
 
-		if (bits >= 32) {
-			char *fmt_f = "__attribute__((unused)) static f%d recv_f%d(DragonnetPeer *p)\n";
-
-			fprintf(c_fp, fmt_f, bits, bits);
+			fprintf(c_fp, fmt, elems, bits);
 			fprintf(c_fp, "{\n");
-			fprintf(c_fp, "\treturn (f%d) recv_u%d(p);\n", bits, bits);
+			fprintf(c_fp, "\tfor (u8 i = 0; i < %d; ++i)\n", elems);
+			fprintf(c_fp, "\t\trecv_n%d(p, buf);\n", bits);
 			fprintf(c_fp, "}\n\n");
 		}
 	}
 
 	for (u8 elems = 2; elems <= 4; ++elems) {
 		for (u8 bits = 8; bits <= 64; bits *= 2) {
-			char *fmt_u = "__attribute__((unused)) static v%du%d recv_v%du%d(DragonnetPeer *p)\n";
-			char *fmt_s = "__attribute__((unused)) static v%ds%d recv_v%ds%d(DragonnetPeer *p)\n";
+			char *fmt = "__attribute__((unused)) static void recv_aabb%dn%d(DragonnetPeer *p, void *buf)\n";
 
-			fprintf(c_fp, fmt_u, elems, bits, elems, bits);
+			fprintf(c_fp, fmt, elems, bits);
 			fprintf(c_fp, "{\n");
-			fprintf(c_fp, "\tv%du%d v = {0};\n", elems, bits);
-			fprintf(c_fp, "\tu%d *ptr = &v.x;\n\n", bits);
-			fprintf(c_fp, "\tfor (u8 i = 0; i < %d; ++i) {\n", elems);
-			fprintf(c_fp, "\t\t*ptr++ = recv_u%d(p);\n", bits);
-			fprintf(c_fp, "\t}\n\n");
-			fprintf(c_fp, "\treturn v;\n");
+			fprintf(c_fp, "\tfor (u8 i = 0; i < 2; ++i)\n");
+			fprintf(c_fp, "\t\trecv_v%dn%d(p, buf);\n", elems, bits);
 			fprintf(c_fp, "}\n\n");
-
-			fprintf(c_fp, fmt_s, elems, bits, elems, bits);
-			fprintf(c_fp, "{\n");
-			fprintf(c_fp, "\tv%ds%d v = {0};\n", elems, bits);
-			fprintf(c_fp, "\ts%d *ptr = &v.x;\n\n", bits);
-			fprintf(c_fp, "\tfor (u8 i = 0; i < %d; ++i) {\n", elems);
-			fprintf(c_fp, "\t\t*ptr++ = recv_s%d(p);\n", bits);
-			fprintf(c_fp, "\t}\n\n");
-			fprintf(c_fp, "\treturn v;\n");
-			fprintf(c_fp, "}\n\n");
-
-			if (bits >= 32) {
-				char *fmt_f = "__attribute__((unused)) static v%df%d recv_v%df%d(DragonnetPeer *p)\n";
-
-				fprintf(c_fp, fmt_f, elems, bits, elems, bits);
-				fprintf(c_fp, "{\n");
-				fprintf(c_fp, "\tv%df%d v = {0};\n", elems, bits);
-				fprintf(c_fp, "\tf%d *ptr = &v.x;\n\n", bits);
-				fprintf(c_fp, "\tfor (u8 i = 0; i < %d; ++i) {\n", elems);
-				fprintf(c_fp, "\t\t*ptr++ = recv_f%d(p);\n", bits);
-				fprintf(c_fp, "\t}\n\n");
-				fprintf(c_fp, "\treturn v;\n");
-				fprintf(c_fp, "}\n\n");
-			}
 		}
 	}
 
-	for (u8 elems = 2; elems <= 4; ++elems) {
-		for (u8 bits = 8; bits <= 64; bits *= 2) {
-			char *fmt_u = "__attribute__((unused)) static aabb%du%d recv_aabb%du%d(DragonnetPeer *p)\n";
-			char *fmt_s = "__attribute__((unused)) static aabb%ds%d recv_aabb%ds%d(DragonnetPeer *p)\n";
-
-			fprintf(c_fp, fmt_u, elems, bits, elems, bits);
-			fprintf(c_fp, "{\n");
-			fprintf(c_fp, "\taabb%du%d v = {0};\n", elems, bits);
-			fprintf(c_fp, "\tv%du%d *ptr = &v.min;\n\n", elems, bits);
-			fprintf(c_fp, "\tfor (u8 i = 0; i < 2; ++i) {\n");
-			fprintf(c_fp, "\t\t*ptr++ = recv_v%du%d(p);\n", elems, bits);
-			fprintf(c_fp, "\t}\n\n");
-			fprintf(c_fp, "\treturn v;\n");
-			fprintf(c_fp, "}\n\n");
-
-			fprintf(c_fp, fmt_s, elems, bits, elems, bits);
-			fprintf(c_fp, "{\n");
-			fprintf(c_fp, "\taabb%ds%d v = {0};\n", elems, bits);
-			fprintf(c_fp, "\tv%ds%d *ptr = &v.min;\n\n", elems, bits);
-			fprintf(c_fp, "\tfor (u8 i = 0; i < 2; ++i) {\n");
-			fprintf(c_fp, "\t\t*ptr++ = recv_v%ds%d(p);\n", elems, bits);
-			fprintf(c_fp, "\t}\n\n");
-			fprintf(c_fp, "\treturn v;\n");
-			fprintf(c_fp, "}\n\n");
-
-			if (bits >= 32) {
-				char *fmt_f = "__attribute__((unused)) static aabb%df%d recv_aabb%df%d(DragonnetPeer *p)\n";
-
-				fprintf(c_fp, fmt_f, elems, bits, elems, bits);
-				fprintf(c_fp, "{\n");
-				fprintf(c_fp, "\taabb%df%d v = {0};\n", elems, bits);
-				fprintf(c_fp, "\tv%df%d *ptr = &v.min;\n\n", elems, bits);
-				fprintf(c_fp, "\tfor (u8 i = 0; i < 2; ++i) {\n");
-				fprintf(c_fp, "\t\t*ptr++ = recv_v%df%d(p);\n", elems, bits);
-				fprintf(c_fp, "\t}\n\n");
-				fprintf(c_fp, "\treturn v;\n");
-				fprintf(c_fp, "}\n\n");
-			}
-		}
-	}
-
-	fprintf(c_fp, "__attribute__((unused)) static string recv_string(DragonnetPeer *p)\n");
+	fprintf(c_fp, "__attribute__((unused)) static void recv_string(DragonnetPeer *p, void *buf)\n");
 	fprintf(c_fp, "{\n");
-	fprintf(c_fp, "\tstring v = malloc(sizeof(u16));\n\n");
+	fprintf(c_fp, "\tstring v = malloc(1 + (u16) ~0);\n\n");
 	fprintf(c_fp, "\tchar ch;\n");
 	fprintf(c_fp, "\tfor (u16 i = 0; ch != '\\0'; ++i) {\n");
-	fprintf(c_fp, "\t\tch = recv_s8(p);\n");
+	fprintf(c_fp, "\t\trecv_n8(p, &ch);\n");
 	fprintf(c_fp, "\t\tv[i] = ch;\n");
 	fprintf(c_fp, "\t}\n\n");
 	fprintf(c_fp, "\tv = realloc(v, strlen(v));\n");
-	fprintf(c_fp, "\treturn v;\n");
+	fprintf(c_fp, "\tmemcpy(buf, v, strlen(v));\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static Blob *recv_Blob(DragonnetPeer *p)\n\n");
+	fprintf(c_fp, "__attribute__((unused)) static void recv_Blob(DragonnetPeer *p, void *buf)\n\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tBlob *v = malloc(sizeof *v);\n");
-	fprintf(c_fp, "\tv->siz = recv_u32(p);\n");
+	fprintf(c_fp, "\trecv_n32(p, &v->siz);\n");
 	fprintf(c_fp, "\tv->data = malloc(v->siz);\n");
 	fprintf(c_fp, "\tdragonnet_recv_raw(p, v->data, v->siz);\n\n");
-	fprintf(c_fp, "\treturn v;\n");
+	fprintf(c_fp, "\tmemcpy(buf, v->data, v->siz);\n");
 	fprintf(c_fp, "}\n\n");
 }
 
@@ -587,7 +516,6 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 			size_t tokens_len = split(&tokens, msgs[i], " ");
 
 			fprintf(c_fp, "\tsend_%s(p, false, type.%s);\n", &tokens[0][1], tokens[1]);
-
 			free_split(tokens, tokens_len);
 			tokens = NULL;
 		}
@@ -602,8 +530,8 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 				fprintf(c_fp, "}\n\n");
 
 			msg = msgs[i];
-			fprintf(h_fp, "void dragonnet_peer_send_%s(DragonnetPeer *p, %s type);\n", msg, msg);
-			fprintf(c_fp, "void dragonnet_peer_send_%s(DragonnetPeer *p, %s type)\n{\n", msg, msg);
+			fprintf(h_fp, "void dragonnet_peer_send_%s(DragonnetPeer *p, %s *type);\n", msg, msg);
+			fprintf(c_fp, "void dragonnet_peer_send_%s(DragonnetPeer *p, %s *type)\n{\n", msg, msg);
 
 			char upper[1 + strlen(msgs[i])];
 			char *ptr = upper;
@@ -618,9 +546,9 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 			size_t tokens_len = split(&tokens, msgs[i], " ");
 
 			if (i >= msgs_len-1 || msgs[1+i][0] != '\t')
-				fprintf(c_fp, "\tsend_%s(p, true, type.%s);\n", &tokens[0][1], tokens[1]);
+				fprintf(c_fp, "\tsend_%s(p, true, type->%s);\n", &tokens[0][1], tokens[1]);
 			else
-				fprintf(c_fp, "\tsend_%s(p, false, type.%s);\n", &tokens[0][1], tokens[1]);
+				fprintf(c_fp, "\tsend_%s(p, false, type->%s);\n", &tokens[0][1], tokens[1]);
 
 			free_split(tokens, tokens_len);
 			tokens = NULL;
@@ -633,26 +561,38 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 	for (size_t i = 0; i < msgs_len; ++i) {
 		if (msgs[i][0] != '\t') {
 			if (msg != NULL) {
-				fprintf(c_fp, "\treturn type;\n");
 				fprintf(c_fp, "}\n\n");
 			}
 
 			msg = msgs[i];
-			fprintf(h_fp, "%s dragonnet_peer_recv_%s(DragonnetPeer *p);\n", msg, msg);
-			fprintf(c_fp, "%s dragonnet_peer_recv_%s(DragonnetPeer *p)\n{\n", msg, msg);
-			fprintf(c_fp, "\t%s type = {0};\n", msg);
+			fprintf(c_fp, "static void dragonnet_peer_recv_%s(DragonnetPeer *p, void *buf)\n{\n", msg);
+			fprintf(c_fp, "\t%s *type = (%s *) buf;\n", msg, msg);
 		} else {
 			char **tokens;
 			size_t tokens_len = split(&tokens, msgs[i], " ");
 
-			fprintf(c_fp, "\ttype.%s = recv_%s(p);\n", tokens[1], &tokens[0][1]);
+			char type[strlen(&tokens[0][1])];
+			strcpy(type, &tokens[0][1]);
+
+			for (size_t bits = 8; bits <= 64; bits *= 2) {
+				const char *fmt[] = {"u%d", "s%d", "f%d"};
+				for (size_t j = 0; j < sizeof fmt / sizeof *fmt; ++j) {
+					char *cmp;
+					asprintf(&cmp, fmt[j], bits);
+
+					if (strcmp(type, cmp) == 0)
+						sprintf(type, "n%ld", bits);
+
+					free(cmp);
+				}
+			}
+
+			fprintf(c_fp, "\trecv_%s(p, &type->%s);\n", type, tokens[1]);
 			free_split(tokens, tokens_len);
 			tokens = NULL;
 		}
 	}
 
-	fprintf(h_fp, "\n");
-	fprintf(c_fp, "\treturn type;\n");
 	fprintf(c_fp, "}\n");
 	msg = NULL;
 
@@ -701,15 +641,10 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 
 	fprintf(h_fp, "\n");
 	fprintf(c_fp, "\treturn type;\n");
-	fprintf(c_fp, "}\n");
+	fprintf(c_fp, "}\n\n");
 	msg = NULL;
 
 	// Create type enum
-	size_t last_msg = 0;
-	for (size_t i = 0; i < msgs_len; ++i)
-		if (msgs[i][0] != '\t')
-			last_msg = i;
-
 	fprintf(h_fp, "typedef enum {\n");
 	for (size_t i = 0; i < msgs_len; ++i) {
 		if (msgs[i][0] == '\t')
@@ -722,13 +657,27 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 		while ((*ptr = *ptr ? toupper(*ptr) : '\0'))
 			++ptr;
 
-		if (i == last_msg)
-			fprintf(h_fp, "\tDRAGONNET_TYPE_%s\n", upper);
-		else
-			fprintf(h_fp, "\tDRAGONNET_TYPE_%s,\n", upper);
+		fprintf(h_fp, "\tDRAGONNET_TYPE_%s,\n", upper);
 	}
 
-	fprintf(h_fp, "} DragonnetType;\n");
+	fprintf(h_fp, "\tDRAGONNET_NUM_TYPES\n");
+	fprintf(h_fp, "} DragonnetTypeNum;\n");
+
+	// ABI
+	fprintf(c_fp, "u16 dragonnet_num_types = DRAGONNET_NUM_TYPES;\n");
+	fprintf(c_fp, "DragonnetType dragonnet_types[] = {\n");
+
+	for (size_t i = 0; i < msgs_len; ++i) {
+		if (msgs[i][0] == '\t')
+			continue;
+
+		fprintf(c_fp, "\t{\n");
+		fprintf(c_fp, "\t\t.siz = sizeof(%s),\n", msgs[i]);
+		fprintf(c_fp, "\t\t.deserialize = &dragonnet_peer_recv_%s\n", msgs[i]);
+		fprintf(c_fp, "\t},\n");
+	}
+
+	fprintf(c_fp, "};\n");
 
 	free_split(msgs, msgs_len);
 	msgs = NULL;

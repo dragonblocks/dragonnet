@@ -1,11 +1,11 @@
 #include <assert.h>
+#include <dragonnet/recv.h>
+#include <dragonnet/listen.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#include "listen.h"
 
 // ----
 // Peer
@@ -45,8 +45,7 @@ static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
 // --------
 
 DragonnetListener *dragonnet_listener_new(char *addr,
-		void (*on_connect)(DragonnetPeer *p),
-		void (*on_recv_type)(struct dragonnet_peer *, u16))
+		void (*on_connect)(DragonnetPeer *p))
 {
 	DragonnetListener *l = malloc(sizeof *l);
 	pthread_rwlock_init(&l->mu, NULL);
@@ -54,7 +53,7 @@ DragonnetListener *dragonnet_listener_new(char *addr,
 
 	l->sock = socket(AF_INET6, SOCK_STREAM, 0);
 	l->on_connect = on_connect;
-	l->on_recv_type = on_recv_type;
+	l->on_recv_type = calloc(sizeof *l->on_recv_type, dragonnet_num_types);
 
 	int so_reuseaddr = 1;
 	if (setsockopt(l->sock, SOL_SOCKET, SO_REUSEADDR, &so_reuseaddr,
@@ -81,6 +80,21 @@ DragonnetListener *dragonnet_listener_new(char *addr,
 
 	pthread_rwlock_unlock(&l->mu);
 	return l;
+}
+
+void dragonnet_listener_set_recv_hook(DragonnetListener *l, u16 type_id,
+		void (*on_recv)(struct dragonnet_peer *, void *))
+{
+	pthread_rwlock_rdlock(&l->mu);
+	DragonnetListenerState state = l->state;
+	pthread_rwlock_unlock(&l->mu);
+
+	if (state >= DRAGONNET_LISTENER_ACTIVE)
+		return;
+
+	pthread_rwlock_wrlock(&l->mu);
+	l->on_recv_type[type_id] = on_recv;
+	pthread_rwlock_unlock(&l->mu);
 }
 
 static void *listener_main(void *g_listener)

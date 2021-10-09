@@ -3,8 +3,7 @@
 
 #include <pthread.h>
 #include <dragontype/number.h>
-
-#include "addr.h"
+#include <dragonnet/addr.h>
 
 typedef enum {
 	DRAGONNET_PEER_CREATED,
@@ -18,12 +17,14 @@ typedef struct dragonnet_peer {
 	DragonnetPeerState state;
 	pthread_t recv_thread;
 
-	void (*on_recv_type)(struct dragonnet_peer *, u16);
+	void (**on_recv_type)(struct dragonnet_peer *, void *);
 
 	pthread_rwlock_t mu;
 } DragonnetPeer;
 
-DragonnetPeer *dragonnet_connect(char *addr, void (*on_recv_type)(struct dragonnet_peer *, u16));
+DragonnetPeer *dragonnet_connect(char *addr);
+void dragonnet_peer_set_recv_hook(DragonnetPeer *p, u16 type_id,
+		void (*on_recv)(struct dragonnet_peer *, void *));
 void dragonnet_peer_run(DragonnetPeer *p);
 void dragonnet_peer_close(DragonnetPeer *p);
 void dragonnet_peer_delete(DragonnetPeer *p);

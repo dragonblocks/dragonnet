@@ -18,14 +18,15 @@ typedef struct {
 	pthread_t accept_thread;
 
 	void (*on_connect)(DragonnetPeer *);
-	void (*on_recv_type)(struct dragonnet_peer *, u16);
+	void (**on_recv_type)(DragonnetPeer *, void *);
 
 	pthread_rwlock_t mu;
 } DragonnetListener;
 
 DragonnetListener *dragonnet_listener_new(char *addr,
-		void (*on_connect)(DragonnetPeer *p),
-		void (*on_recv_type)(struct dragonnet_peer *, u16));
+		void (*on_connect)(DragonnetPeer *p));
+void dragonnet_listener_set_recv_hook(DragonnetListener *l, u16 type_id,
+		void (*on_recv)(struct dragonnet_peer *, void *));
 void dragonnet_listener_run(DragonnetListener *l);
 void dragonnet_listener_close(DragonnetListener *l);
 void dragonnet_listener_delete(DragonnetListener *l);
