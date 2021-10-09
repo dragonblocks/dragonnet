@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <dragonnet/recv.h>
@@ -26,4 +28,13 @@ void dragonnet_recv_raw(DragonnetPeer *p, void *buf, size_t n)
 
 		pthread_rwlock_unlock(&p->mu);
 	}
+}
+
+void dragonnet_read_raw(u8 **buf, size_t *n, void *data, size_t len)
+{
+	memcpy(data, *buf, len);
+	memcpy(*buf, &((*buf)[len]), -len + *n);
+
+	*buf = realloc(*buf, -len + *n);
+	*n -= len;
 }
