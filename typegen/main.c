@@ -137,10 +137,30 @@ static void gen_serializers(FILE *c_fp)
 	fprintf(c_fp, "\tdragonnet_send_raw(p, submit, v, strlen(v));\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static void send_Blob(DragonnetPeer *p, bool submit, Blob *v)\n\n");
+	fprintf(c_fp, "__attribute__((unused)) static void send_Blob(DragonnetPeer *p, bool submit, Blob v)\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tsend_u32(p, false, v->siz);\n");
 	fprintf(c_fp, "\tdragonnet_send_raw(p, submit, v->data, v->siz);\n");
+	fprintf(c_fp, "}\n\n");
+
+	fprintf(c_fp, "__attribute__((unused)) static void send_CompressedBlob(DragonnetPeer *p, bool submit, CompressedBlob v)\n\n");
+	fprintf(c_fp, "{\n");
+	fprintf(c_fp, "\tchar compr[2 + v->siz];\n\n");
+	fprintf(c_fp, "\tz_stream s;\n");
+	fprintf(c_fp, "\ts.zalloc = Z_NULL;\n");
+	fprintf(c_fp , "\ts.zfree = Z_NULL;\n");
+	fprintf(c_fp, "\ts.opaque = Z_NULL;\n\n");
+	fprintf(c_fp, "\ts.avail_in = v->siz;\n");
+	fprintf(c_fp, "\ts.avail_out = 3 + v->siz;\n");
+	fprintf(c_fp, "\ts.next_in = (Bytef *) v->data;\n");
+	fprintf(c_fp, "\ts.next_out = (Bytef *) compr;\n\n");
+	fprintf(c_fp, "\tdeflateInit(&s, Z_BEST_COMPRESSION);\n");
+	fprintf(c_fp, "\tdeflate(&s, Z_FINISH);\n");
+	fprintf(c_fp, "\tdeflateEnd(&s);\n\n");
+	fprintf(c_fp, "\tv->compr_siz = s.total_out;\n");
+	fprintf(c_fp, "\tsend_u32(p, false, v->compr_siz);\n");
+	fprintf(c_fp, "\tsend_u32(p, false, v->siz);\n");
+	fprintf(c_fp, "\tdragonnet_send_raw(p, submit, compr, v->compr_siz);\n");
 	fprintf(c_fp, "}\n\n");
 }
 
@@ -184,7 +204,7 @@ static void gen_deserializers(FILE *c_fp)
 
 	fprintf(c_fp, "__attribute__((unused)) static void recv_string(DragonnetPeer *p, void *buf)\n");
 	fprintf(c_fp, "{\n");
-	fprintf(c_fp, "\tstring v = malloc(1 + (u16) ~0);\n\n");
+	fprintf(c_fp, "\tstring v = malloc(1 + (1 << 16));\n\n");
 	fprintf(c_fp, "\tchar ch;\n");
 	fprintf(c_fp, "\tfor (u16 i = 0; ch != '\\0'; ++i) {\n");
 	fprintf(c_fp, "\t\trecv_n8(p, &ch);\n");
@@ -194,13 +214,34 @@ static void gen_deserializers(FILE *c_fp)
 	fprintf(c_fp, "\tmemcpy(buf, v, strlen(v));\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static void recv_Blob(DragonnetPeer *p, void *buf)\n\n");
+	fprintf(c_fp, "__attribute__((unused)) static void recv_Blob(DragonnetPeer *p, void *buf)\n");
 	fprintf(c_fp, "{\n");
-	fprintf(c_fp, "\tBlob *v = malloc(sizeof *v);\n");
+	fprintf(c_fp, "\tBlob v = (Blob) buf;\n");
 	fprintf(c_fp, "\trecv_n32(p, &v->siz);\n");
 	fprintf(c_fp, "\tv->data = malloc(v->siz);\n");
 	fprintf(c_fp, "\tdragonnet_recv_raw(p, v->data, v->siz);\n\n");
-	fprintf(c_fp, "\tmemcpy(buf, v->data, v->siz);\n");
+	fprintf(c_fp, "\tmemcpy(buf, v, v->siz + sizeof v);\n");
+	fprintf(c_fp, "}\n\n");
+
+	fprintf(c_fp, "__attribute__((unused)) static void recv_CompressedBlob(DragonnetPeer *p, void *buf)\n");
+	fprintf(c_fp, "{\n");
+	fprintf(c_fp, "\tCompressedBlob v = *(CompressedBlob *) buf;\n");
+	fprintf(c_fp, "\trecv_n32(p, &v->compr_siz);\n");
+	fprintf(c_fp, "\trecv_n32(p, &v->siz);\n");
+	fprintf(c_fp, "\tv->data = malloc(v->siz);\n\n");
+	fprintf(c_fp, "\tchar compr[v->compr_siz];\n");
+	fprintf(c_fp, "\tdragonnet_recv_raw(p, compr, sizeof compr);\n\n");
+	fprintf(c_fp, "\tz_stream s;\n");
+	fprintf(c_fp, "\ts.zalloc = Z_NULL;\n");
+	fprintf(c_fp, "\ts.zfree = Z_NULL;\n");
+	fprintf(c_fp, "\ts.opaque = Z_NULL;\n\n");
+	fprintf(c_fp, "\ts.avail_in = v->compr_siz;\n");
+	fprintf(c_fp, "\ts.next_in = (Bytef *) compr;\n");
+	fprintf(c_fp, "\ts.avail_out = v->siz;\n");
+	fprintf(c_fp, "\ts.next_out = (Bytef *) v->data;\n\n");
+	fprintf(c_fp, "\tinflateInit(&s);\n");
+	fprintf(c_fp, "\tinflate(&s, Z_NO_FLUSH);\n");
+	fprintf(c_fp, "\tinflateEnd(&s);\n");
 	fprintf(c_fp, "}\n\n");
 }
 
@@ -308,10 +349,30 @@ static void gen_buffer_serializers(FILE *c_fp)
 	fprintf(c_fp, "\tdragonnet_write_raw(buf, n, v, strlen(v));\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static void buf_write_Blob(u8 **buf, size_t *n, Blob *v)\n\n");
+	fprintf(c_fp, "__attribute__((unused)) static void buf_write_Blob(u8 **buf, size_t *n, Blob v)\n\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tbuf_write_u32(buf, n, v->siz);\n");
 	fprintf(c_fp, "\tdragonnet_write_raw(buf, n, v->data, v->siz);\n");
+	fprintf(c_fp, "}\n\n");
+
+	fprintf(c_fp, "__attribute__((unused)) static void buf_write_CompressedBlob(u8 **buf, size_t *n, CompressedBlob v)\n\n");
+	fprintf(c_fp, "{\n");
+	fprintf(c_fp, "\tchar compr[2 + v->siz];\n\n");
+	fprintf(c_fp, "\tz_stream s;\n");
+	fprintf(c_fp, "\ts.zalloc = Z_NULL;\n");
+	fprintf(c_fp , "\ts.zfree = Z_NULL;\n");
+	fprintf(c_fp, "\ts.opaque = Z_NULL;\n\n");
+	fprintf(c_fp, "\ts.avail_in = v->siz;\n");
+	fprintf(c_fp, "\ts.avail_out = 3 + v->siz;\n");
+	fprintf(c_fp, "\ts.next_in = (Bytef *) v->data;\n");
+	fprintf(c_fp, "\ts.next_out = (Bytef *) compr;\n\n");
+	fprintf(c_fp, "\tdeflateInit(&s, Z_BEST_COMPRESSION);\n");
+	fprintf(c_fp, "\tdeflate(&s, Z_FINISH);\n");
+	fprintf(c_fp, "\tdeflateEnd(&s);\n\n");
+	fprintf(c_fp, "\tv->compr_siz = s.total_out;\n");
+	fprintf(c_fp, "\tbuf_write_u32(buf, n, v->compr_siz);\n");
+	fprintf(c_fp, "\tbuf_write_u32(buf, n, v->siz);\n");
+	fprintf(c_fp, "\tdragonnet_write_raw(buf, n, compr, v->compr_siz);\n");
 	fprintf(c_fp, "}\n\n");
 }
 
@@ -437,12 +498,34 @@ static void gen_buffer_deserializers(FILE *c_fp)
 	fprintf(c_fp, "\treturn v;\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static Blob *buf_read_Blob(u8 **buf, size_t *n)\n\n");
+	fprintf(c_fp, "__attribute__((unused)) static Blob buf_read_Blob(u8 **buf, size_t *n)\n");
 	fprintf(c_fp, "{\n");
-	fprintf(c_fp, "\tBlob *v = malloc(sizeof *v);\n");
+	fprintf(c_fp, "\tBlob v = malloc(sizeof *v);\n");
 	fprintf(c_fp, "\tv->siz = buf_read_u32(buf, n);\n");
 	fprintf(c_fp, "\tv->data = malloc(v->siz);\n");
 	fprintf(c_fp, "\tdragonnet_read_raw(buf, n, v->data, v->siz);\n\n");
+	fprintf(c_fp, "\treturn v;\n");
+	fprintf(c_fp, "}\n\n");
+
+	fprintf(c_fp, "__attribute__((unused)) static CompressedBlob buf_read_CompressedBlob(u8 **buf, size_t *n)\n");
+	fprintf(c_fp, "{\n");
+	fprintf(c_fp, "\tCompressedBlob v = malloc(sizeof *v);\n");
+	fprintf(c_fp, "\tv->compr_siz = buf_read_u32(buf, n);\n");
+	fprintf(c_fp, "\tv->siz = buf_read_u32(buf, n);\n");
+	fprintf(c_fp, "\tv->data = malloc(v->siz);\n\n");
+	fprintf(c_fp, "\tchar compr[v->compr_siz];\n");
+	fprintf(c_fp, "\tdragonnet_read_raw(buf, n, compr, sizeof compr);\n\n");
+	fprintf(c_fp, "\tz_stream s;\n");
+	fprintf(c_fp, "\ts.zalloc = Z_NULL;\n");
+	fprintf(c_fp, "\ts.zfree = Z_NULL;\n");
+	fprintf(c_fp, "\ts.opaque = Z_NULL;\n\n");
+	fprintf(c_fp, "\ts.avail_in = v->compr_siz;\n");
+	fprintf(c_fp, "\ts.next_in = (Bytef *) compr;\n");
+	fprintf(c_fp, "\ts.avail_out = v->siz;\n");
+	fprintf(c_fp, "\ts.next_out = (Bytef *) v->data;\n\n");
+	fprintf(c_fp, "\tinflateInit(&s);\n");
+	fprintf(c_fp, "\tinflate(&s, Z_NO_FLUSH);\n");
+	fprintf(c_fp, "\tinflateEnd(&s);\n\n");
 	fprintf(c_fp, "\treturn v;\n");
 	fprintf(c_fp, "}\n\n");
 }
@@ -462,15 +545,20 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 	fprintf(c_fp, "#include <stdlib.h>\n");
 	fprintf(c_fp, "#include <string.h>\n");
 	fprintf(c_fp, "#include <dragonnet/recv.h>\n");
-	fprintf(c_fp, "#include <dragonnet/send.h>\n\n");
+	fprintf(c_fp, "#include <dragonnet/send.h>\n");
+	fprintf(c_fp, "#include <zlib.h>\n\n");
 	fprintf(c_fp, "#include \"dnet-types.h\"\n\n");
 
 	FILE *h_fp = fopen("dnet-types.h", "w");
 	fprintf(h_fp, "#include <dragontype/number.h>\n\n");
 	fprintf(h_fp, "#define htobe8(x) (x)\n");
 	fprintf(h_fp, "#define be8toh(x) (x)\n\n");
-	fprintf(h_fp, "typedef char *string;\n");
-	fprintf(h_fp, "typedef struct {\n\tu32 siz;\n\tu8 *data;\n} Blob;\n\n");
+	fprintf(h_fp, "typedef char *string;\n\n");
+	fprintf(h_fp, "typedef struct {\n\tu32 siz;\n\tu8 *data;\n} *Blob;\n\n");
+	fprintf(h_fp, "typedef struct {\n");
+	fprintf(h_fp, "\tu32 siz, compr_siz;\n");
+	fprintf(h_fp, "\tu8 *data;\n");
+	fprintf(h_fp, "} *CompressedBlob;\n\n");
 
 	gen_serializers(c_fp);
 	gen_deserializers(c_fp);
