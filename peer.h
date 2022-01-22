@@ -4,6 +4,7 @@
 #include <dragonnet/addr.h>
 #include <dragontype/number.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 typedef enum {
 	DRAGONNET_PEER_CREATED,
@@ -17,6 +18,7 @@ typedef struct dragonnet_peer {
 	DragonnetPeerState state;
 	pthread_t recv_thread;
 
+	bool (*on_recv)(struct dragonnet_peer *, u16, void *);
 	void (**on_recv_type)(struct dragonnet_peer *, void *);
 
 	pthread_rwlock_t mu;

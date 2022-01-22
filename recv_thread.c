@@ -50,8 +50,12 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 		type.deserialize(p, buf);
 
 		pthread_rwlock_rdlock(&p->mu);
+		bool (*on_recv)(struct dragonnet_peer *, u16, void *) = p->on_recv;
 		void (*on_recv_type)(DragonnetPeer *, void *) = p->on_recv_type[type_id];
 		pthread_rwlock_unlock(&p->mu);
+
+		if (on_recv != NULL && !on_recv(p, type, buf))
+			on_recv_type = NULL;
 
 		if (on_recv_type != NULL)
 			on_recv_type(p, buf);
