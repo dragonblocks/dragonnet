@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define FUNC "__attribute__((unused)) static inline "
+
 static size_t split(char ***strs, char *s, const char *delim)
 {
 	size_t i = 0;
@@ -38,8 +40,8 @@ static void free_split(char **strs, size_t n)
 static void gen_serializers(FILE *c_fp)
 {
 	for (u8 bits = 8; bits <= 64; bits *= 2) {
-		char *fmt_u = "__attribute__((unused)) static void send_u%d(DragonnetPeer *p, bool submit, u%d v)\n";
-		char *fmt_s = "__attribute__((unused)) static void send_s%d(DragonnetPeer *p, bool submit, s%d v)\n";
+		char *fmt_u = FUNC "void send_u%d(DragonnetPeer *p, bool submit, u%d v)\n";
+		char *fmt_s = FUNC "void send_s%d(DragonnetPeer *p, bool submit, s%d v)\n";
 
 		fprintf(c_fp, fmt_u, bits, bits);
 		fprintf(c_fp, "{\n");
@@ -53,7 +55,7 @@ static void gen_serializers(FILE *c_fp)
 		fprintf(c_fp, "}\n\n");
 
 		if (bits >= 32) {
-			char *fmt_f = "static void send_f%d(DragonnetPeer *p, bool submit, f%d v)\n";
+			char *fmt_f = FUNC "void send_f%d(DragonnetPeer *p, bool submit, f%d v)\n";
 
 			fprintf(c_fp, fmt_f, bits, bits);
 			fprintf(c_fp, "{\n");
@@ -64,8 +66,8 @@ static void gen_serializers(FILE *c_fp)
 
 	for (u8 elems = 2; elems <= 4; ++elems) {
 		for (u8 bits = 8; bits <= 64; bits *= 2) {
-			char *fmt_u = "__attribute__((unused)) static void send_v%du%d(DragonnetPeer *p, bool submit, v%du%d v)\n";
-			char *fmt_s = "__attribute__((unused)) static void send_v%ds%d(DragonnetPeer *p, bool submit, v%ds%d v)\n";
+			char *fmt_u = FUNC "void send_v%du%d(DragonnetPeer *p, bool submit, v%du%d v)\n";
+			char *fmt_s = FUNC "void send_v%ds%d(DragonnetPeer *p, bool submit, v%ds%d v)\n";
 
 			fprintf(c_fp, fmt_u, elems, bits, elems, bits);
 			fprintf(c_fp, "{\n");
@@ -84,7 +86,7 @@ static void gen_serializers(FILE *c_fp)
 			fprintf(c_fp, "}\n\n");
 
 			if (bits >= 32) {
-				char *fmt_f = "__attribute__((unused)) static void send_v%df%d(DragonnetPeer *p, bool submit, v%df%d v)\n";
+				char *fmt_f = FUNC "void send_v%df%d(DragonnetPeer *p, bool submit, v%df%d v)\n";
 
 				fprintf(c_fp, fmt_f, elems, bits, elems, bits);
 				fprintf(c_fp, "{\n");
@@ -99,8 +101,8 @@ static void gen_serializers(FILE *c_fp)
 
 	for (u8 elems = 2; elems <= 4; ++elems) {
 		for (u8 bits = 8; bits <= 64; bits *= 2) {
-			char *fmt_u = "__attribute__((unused)) static void send_aabb%du%d(DragonnetPeer *p, bool submit, aabb%du%d v)\n";
-			char *fmt_s = "__attribute__((unused)) static void send_aabb%ds%d(DragonnetPeer *p, bool submit, aabb%ds%d v)\n";
+			char *fmt_u = FUNC "void send_aabb%du%d(DragonnetPeer *p, bool submit, aabb%du%d v)\n";
+			char *fmt_s = FUNC "void send_aabb%ds%d(DragonnetPeer *p, bool submit, aabb%ds%d v)\n";
 
 			fprintf(c_fp, fmt_u, elems, bits, elems, bits);
 			fprintf(c_fp, "{\n");
@@ -119,7 +121,7 @@ static void gen_serializers(FILE *c_fp)
 			fprintf(c_fp, "}\n\n");
 
 			if (bits >= 32) {
-				char *fmt_f = "__attribute__((unused)) static void send_aabb%df%d(DragonnetPeer *p, bool submit, aabb%df%d v)\n";
+				char *fmt_f = FUNC "void send_aabb%df%d(DragonnetPeer *p, bool submit, aabb%df%d v)\n";
 
 				fprintf(c_fp, fmt_f, elems, bits, elems, bits);
 				fprintf(c_fp, "{\n");
@@ -132,18 +134,18 @@ static void gen_serializers(FILE *c_fp)
 		}
 	}
 
-	fprintf(c_fp, "__attribute__((unused)) static void send_string(DragonnetPeer *p, bool submit, string v)\n");
+	fprintf(c_fp, FUNC "void send_string(DragonnetPeer *p, bool submit, string v)\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tdragonnet_send_raw(p, submit, v, strlen(v));\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static void send_Blob(DragonnetPeer *p, bool submit, Blob v)\n");
+	fprintf(c_fp, FUNC "void send_Blob(DragonnetPeer *p, bool submit, Blob v)\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tsend_u32(p, false, v->siz);\n");
 	fprintf(c_fp, "\tdragonnet_send_raw(p, submit, v->data, v->siz);\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static void send_CompressedBlob(DragonnetPeer *p, bool submit, CompressedBlob v)\n\n");
+	fprintf(c_fp, FUNC "void send_CompressedBlob(DragonnetPeer *p, bool submit, CompressedBlob v)\n\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tchar compr[2 + v->blob->siz];\n\n");
 	fprintf(c_fp, "\tz_stream s;\n");
@@ -167,7 +169,7 @@ static void gen_serializers(FILE *c_fp)
 static void gen_deserializers(FILE *c_fp)
 {
 	for (u8 bits = 8; bits <= 64; bits *= 2) {
-		char *fmt = "__attribute__((unused)) static void recv_n%d(DragonnetPeer *p, void *buf)\n";
+		char *fmt = FUNC "void recv_n%d(DragonnetPeer *p, void *buf)\n";
 
 		fprintf(c_fp, fmt, bits);
 		fprintf(c_fp, "{\n");
@@ -180,7 +182,7 @@ static void gen_deserializers(FILE *c_fp)
 
 	for (u8 elems = 2; elems <= 4; ++elems) {
 		for (u8 bits = 8; bits <= 64; bits *= 2) {
-			char *fmt = "__attribute__((unused)) static void recv_v%dn%d(DragonnetPeer *p, void *buf)\n";
+			char *fmt = FUNC "void recv_v%dn%d(DragonnetPeer *p, void *buf)\n";
 
 			fprintf(c_fp, fmt, elems, bits);
 			fprintf(c_fp, "{\n");
@@ -192,7 +194,7 @@ static void gen_deserializers(FILE *c_fp)
 
 	for (u8 elems = 2; elems <= 4; ++elems) {
 		for (u8 bits = 8; bits <= 64; bits *= 2) {
-			char *fmt = "__attribute__((unused)) static void recv_aabb%dn%d(DragonnetPeer *p, void *buf)\n";
+			char *fmt = FUNC "void recv_aabb%dn%d(DragonnetPeer *p, void *buf)\n";
 
 			fprintf(c_fp, fmt, elems, bits);
 			fprintf(c_fp, "{\n");
@@ -202,7 +204,7 @@ static void gen_deserializers(FILE *c_fp)
 		}
 	}
 
-	fprintf(c_fp, "__attribute__((unused)) static void recv_string(DragonnetPeer *p, void *buf)\n");
+	fprintf(c_fp, FUNC "void recv_string(DragonnetPeer *p, void *buf)\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tstring v = malloc(1 + (1 << 16));\n\n");
 	fprintf(c_fp, "\tchar ch;\n");
@@ -214,7 +216,7 @@ static void gen_deserializers(FILE *c_fp)
 	fprintf(c_fp, "\tmemcpy(buf, v, strlen(v));\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static void recv_Blob(DragonnetPeer *p, void *buf)\n");
+	fprintf(c_fp, FUNC "void recv_Blob(DragonnetPeer *p, void *buf)\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tBlob v = (Blob) buf;\n");
 	fprintf(c_fp, "\trecv_n32(p, &v->siz);\n");
@@ -223,7 +225,7 @@ static void gen_deserializers(FILE *c_fp)
 	fprintf(c_fp, "\tmemcpy(buf, v, v->siz + sizeof v);\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static void recv_CompressedBlob(DragonnetPeer *p, void *buf)\n");
+	fprintf(c_fp, FUNC "void recv_CompressedBlob(DragonnetPeer *p, void *buf)\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tCompressedBlob v = *(CompressedBlob *) buf;\n");
 	fprintf(c_fp, "\tv->blob = malloc(sizeof *v->blob);\n\n");
@@ -251,8 +253,8 @@ static void gen_deserializers(FILE *c_fp)
 static void gen_buffer_serializers(FILE *c_fp)
 {
 	for (u8 bits = 8; bits <= 64; bits *= 2) {
-		char *fmt_u = "__attribute__((unused)) static void buf_write_u%d(u8 **buf, size_t *n, u%d v)\n";
-		char *fmt_s = "__attribute__((unused)) static void buf_write_s%d(u8 **buf, size_t *n, s%d v)\n";
+		char *fmt_u = FUNC "void buf_write_u%d(u8 **buf, size_t *n, u%d v)\n";
+		char *fmt_s = FUNC "void buf_write_s%d(u8 **buf, size_t *n, s%d v)\n";
 
 		fprintf(c_fp, fmt_u, bits, bits);
 		fprintf(c_fp, "{\n");
@@ -266,7 +268,7 @@ static void gen_buffer_serializers(FILE *c_fp)
 		fprintf(c_fp, "}\n\n");
 
 		if (bits >= 32) {
-			char *fmt_f = "static void buf_write_f%d(u8 **buf, size_t *n, f%d v)\n";
+			char *fmt_f = FUNC "void buf_write_f%d(u8 **buf, size_t *n, f%d v)\n";
 
 			fprintf(c_fp, fmt_f, bits, bits);
 			fprintf(c_fp, "{\n");
@@ -277,8 +279,8 @@ static void gen_buffer_serializers(FILE *c_fp)
 
 	for (u8 elems = 2; elems <= 4; ++elems) {
 		for (u8 bits = 8; bits <= 64; bits *= 2) {
-			char *fmt_u = "__attribute__((unused)) static void buf_write_v%du%d(u8 **buf, size_t *n, v%du%d v)\n";
-			char *fmt_s = "__attribute__((unused)) static void buf_write_v%ds%d(u8 **buf, size_t *n, v%ds%d v)\n";
+			char *fmt_u = FUNC "void buf_write_v%du%d(u8 **buf, size_t *n, v%du%d v)\n";
+			char *fmt_s = FUNC "void buf_write_v%ds%d(u8 **buf, size_t *n, v%ds%d v)\n";
 
 			fprintf(c_fp, fmt_u, elems, bits, elems, bits);
 			fprintf(c_fp, "{\n");
@@ -297,7 +299,7 @@ static void gen_buffer_serializers(FILE *c_fp)
 			fprintf(c_fp, "}\n\n");
 
 			if (bits >= 32) {
-				char *fmt_f = "__attribute__((unused)) static void buf_write_v%df%d(u8 **buf, size_t *n, v%df%d v)\n";
+				char *fmt_f = FUNC "void buf_write_v%df%d(u8 **buf, size_t *n, v%df%d v)\n";
 
 				fprintf(c_fp, fmt_f, elems, bits, elems, bits);
 				fprintf(c_fp, "{\n");
@@ -312,8 +314,8 @@ static void gen_buffer_serializers(FILE *c_fp)
 
 	for (u8 elems = 2; elems <= 4; ++elems) {
 		for (u8 bits = 8; bits <= 64; bits *= 2) {
-			char *fmt_u = "__attribute__((unused)) static void buf_write_aabb%du%d(u8 **buf, size_t *n, aabb%du%d v)\n";
-			char *fmt_s = "__attribute__((unused)) static void buf_write_aabb%ds%d(u8 **buf, size_t *n, aabb%ds%d v)\n";
+			char *fmt_u = FUNC "void buf_write_aabb%du%d(u8 **buf, size_t *n, aabb%du%d v)\n";
+			char *fmt_s = FUNC "void buf_write_aabb%ds%d(u8 **buf, size_t *n, aabb%ds%d v)\n";
 
 			fprintf(c_fp, fmt_u, elems, bits, elems, bits);
 			fprintf(c_fp, "{\n");
@@ -332,7 +334,7 @@ static void gen_buffer_serializers(FILE *c_fp)
 			fprintf(c_fp, "}\n\n");
 
 			if (bits >= 32) {
-				char *fmt_f = "__attribute__((unused)) static void buf_write_aabb%df%d(u8 **buf, size_t *n, aabb%df%d v)\n";
+				char *fmt_f = FUNC "void buf_write_aabb%df%d(u8 **buf, size_t *n, aabb%df%d v)\n";
 
 				fprintf(c_fp, fmt_f, elems, bits, elems, bits);
 				fprintf(c_fp, "{\n");
@@ -345,18 +347,18 @@ static void gen_buffer_serializers(FILE *c_fp)
 		}
 	}
 
-	fprintf(c_fp, "__attribute__((unused)) static void buf_write_string(u8 **buf, size_t *n, string v)\n");
+	fprintf(c_fp, FUNC "void buf_write_string(u8 **buf, size_t *n, string v)\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tdragonnet_write_raw(buf, n, v, strlen(v));\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static void buf_write_Blob(u8 **buf, size_t *n, Blob v)\n\n");
+	fprintf(c_fp, FUNC "void buf_write_Blob(u8 **buf, size_t *n, Blob v)\n\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tbuf_write_u32(buf, n, v->siz);\n");
 	fprintf(c_fp, "\tdragonnet_write_raw(buf, n, v->data, v->siz);\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static void buf_write_CompressedBlob(u8 **buf, size_t *n, CompressedBlob v)\n\n");
+	fprintf(c_fp, FUNC "void buf_write_CompressedBlob(u8 **buf, size_t *n, CompressedBlob v)\n\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tchar compr[2 + v->blob->siz];\n\n");
 	fprintf(c_fp, "\tz_stream s;\n");
@@ -380,8 +382,8 @@ static void gen_buffer_serializers(FILE *c_fp)
 static void gen_buffer_deserializers(FILE *c_fp)
 {
 	for (u8 bits = 8; bits <= 64; bits *= 2) {
-		char *fmt_u = "__attribute__((unused)) static u%d buf_read_u%d(u8 **buf, size_t *n)\n";
-		char *fmt_s = "__attribute__((unused)) static s%d buf_read_s%d(u8 **buf, size_t *n)\n";
+		char *fmt_u = FUNC "u%d buf_read_u%d(u8 **buf, size_t *n)\n";
+		char *fmt_s = FUNC "s%d buf_read_s%d(u8 **buf, size_t *n)\n";
 
 		fprintf(c_fp, fmt_u, bits, bits);
 		fprintf(c_fp, "{\n");
@@ -396,7 +398,7 @@ static void gen_buffer_deserializers(FILE *c_fp)
 		fprintf(c_fp, "}\n\n");
 
 		if (bits >= 32) {
-			char *fmt_f = "__attribute__((unused)) static f%d buf_read_f%d(u8 **buf, size_t *n)\n";
+			char *fmt_f = FUNC "f%d buf_read_f%d(u8 **buf, size_t *n)\n";
 
 			fprintf(c_fp, fmt_f, bits, bits);
 			fprintf(c_fp, "{\n");
@@ -407,8 +409,8 @@ static void gen_buffer_deserializers(FILE *c_fp)
 
 	for (u8 elems = 2; elems <= 4; ++elems) {
 		for (u8 bits = 8; bits <= 64; bits *= 2) {
-			char *fmt_u = "__attribute__((unused)) static v%du%d buf_read_v%du%d(u8 **buf, size_t *n)\n";
-			char *fmt_s = "__attribute__((unused)) static v%ds%d buf_read_v%ds%d(u8 **buf, size_t *n)\n";
+			char *fmt_u = FUNC "v%du%d buf_read_v%du%d(u8 **buf, size_t *n)\n";
+			char *fmt_s = FUNC "v%ds%d buf_read_v%ds%d(u8 **buf, size_t *n)\n";
 
 			fprintf(c_fp, fmt_u, elems, bits, elems, bits);
 			fprintf(c_fp, "{\n");
@@ -431,7 +433,7 @@ static void gen_buffer_deserializers(FILE *c_fp)
 			fprintf(c_fp, "}\n\n");
 
 			if (bits >= 32) {
-				char *fmt_f = "__attribute__((unused)) static v%df%d buf_read_v%df%d(u8 **buf, size_t *n)\n";
+				char *fmt_f = FUNC "v%df%d buf_read_v%df%d(u8 **buf, size_t *n)\n";
 
 				fprintf(c_fp, fmt_f, elems, bits, elems, bits);
 				fprintf(c_fp, "{\n");
@@ -448,8 +450,8 @@ static void gen_buffer_deserializers(FILE *c_fp)
 
 	for (u8 elems = 2; elems <= 4; ++elems) {
 		for (u8 bits = 8; bits <= 64; bits *= 2) {
-			char *fmt_u = "__attribute__((unused)) static aabb%du%d buf_read_aabb%du%d(u8 **buf, size_t *n)\n";
-			char *fmt_s = "__attribute__((unused)) static aabb%ds%d buf_read_aabb%ds%d(u8 **buf, size_t *n)\n";
+			char *fmt_u = FUNC "aabb%du%d buf_read_aabb%du%d(u8 **buf, size_t *n)\n";
+			char *fmt_s = FUNC "aabb%ds%d buf_read_aabb%ds%d(u8 **buf, size_t *n)\n";
 
 			fprintf(c_fp, fmt_u, elems, bits, elems, bits);
 			fprintf(c_fp, "{\n");
@@ -472,7 +474,7 @@ static void gen_buffer_deserializers(FILE *c_fp)
 			fprintf(c_fp, "}\n\n");
 
 			if (bits >= 32) {
-				char *fmt_f = "__attribute__((unused)) static aabb%df%d buf_read_aabb%df%d(u8 **buf, size_t *n)\n";
+				char *fmt_f = FUNC "aabb%df%d buf_read_aabb%df%d(u8 **buf, size_t *n)\n";
 
 				fprintf(c_fp, fmt_f, elems, bits, elems, bits);
 				fprintf(c_fp, "{\n");
@@ -487,7 +489,7 @@ static void gen_buffer_deserializers(FILE *c_fp)
 		}
 	}
 
-	fprintf(c_fp, "__attribute__((unused)) static string buf_read_string(u8 **buf, size_t *n)\n");
+	fprintf(c_fp, FUNC "string buf_read_string(u8 **buf, size_t *n)\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tstring v = malloc(sizeof(u16));\n\n");
 	fprintf(c_fp, "\tchar ch;\n");
@@ -499,7 +501,7 @@ static void gen_buffer_deserializers(FILE *c_fp)
 	fprintf(c_fp, "\treturn v;\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static Blob buf_read_Blob(u8 **buf, size_t *n)\n");
+	fprintf(c_fp, FUNC "Blob buf_read_Blob(u8 **buf, size_t *n)\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tBlob v = malloc(sizeof *v);\n");
 	fprintf(c_fp, "\tv->siz = buf_read_u32(buf, n);\n");
@@ -508,7 +510,7 @@ static void gen_buffer_deserializers(FILE *c_fp)
 	fprintf(c_fp, "\treturn v;\n");
 	fprintf(c_fp, "}\n\n");
 
-	fprintf(c_fp, "__attribute__((unused)) static CompressedBlob buf_read_CompressedBlob(u8 **buf, size_t *n)\n");
+	fprintf(c_fp, FUNC "CompressedBlob buf_read_CompressedBlob(u8 **buf, size_t *n)\n");
 	fprintf(c_fp, "{\n");
 	fprintf(c_fp, "\tCompressedBlob v = malloc(sizeof *v);\n");
 	fprintf(c_fp, "\tv->blob = malloc(sizeof *v->blob);\n\n");
@@ -611,7 +613,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 				fprintf(c_fp, "}\n\n");
 
 			msg = msgs[i];
-			fprintf(c_fp, "__attribute__((unused)) static void send_%s(DragonnetPeer *p, %s type)\n{\n", msg, msg);
+			fprintf(c_fp, FUNC "void send_%s(DragonnetPeer *p, %s type)\n{\n", msg, msg);
 		} else {
 			char **tokens;
 			size_t tokens_len = split(&tokens, msgs[i], " ");
@@ -666,7 +668,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 			}
 
 			msg = msgs[i];
-			fprintf(c_fp, "static void dragonnet_peer_recv_%s(DragonnetPeer *p, void *buf)\n{\n", msg);
+			fprintf(c_fp, FUNC "void dragonnet_peer_recv_%s(DragonnetPeer *p, void *buf)\n{\n", msg);
 			fprintf(c_fp, "\t%s *type = (%s *) buf;\n", msg, msg);
 		} else {
 			char **tokens;
