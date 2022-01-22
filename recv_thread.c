@@ -54,7 +54,7 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 		void (*on_recv_type)(DragonnetPeer *, void *) = p->on_recv_type[type_id];
 		pthread_rwlock_unlock(&p->mu);
 
-		if (on_recv != NULL && !on_recv(p, type, buf))
+		if (on_recv != NULL && !on_recv(p, type_id, buf))
 			on_recv_type = NULL;
 
 		if (on_recv_type != NULL)
