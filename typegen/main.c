@@ -554,8 +554,8 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 	fprintf(c_fp, "#include <stdlib.h>\n");
 	fprintf(c_fp, "#include <string.h>\n");
 	fprintf(c_fp, "#include <zlib.h>\n\n");
-	fprintf(h_fp, "#define htobe8(x) (x)\n");
-	fprintf(h_fp, "#define be8toh(x) (x)\n\n");
+	fprintf(c_fp, "#define htobe8(x) (x)\n");
+	fprintf(c_fp, "#define be8toh(x) (x)\n\n");
 	fprintf(c_fp, "#include \"dnet-types.h\"\n\n");
 
 	FILE *h_fp = fopen("dnet-types.h", "w");
