@@ -755,6 +755,9 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 				fprintf(c_fp, "}\n\n");
 
 			msg = msgs[i];
+			fprintf(h_fp, "void dragonnet_buf_write_%s(u8 **buf, size_t *n, %s type);", msg, msg);
+			fprintf(c_fp, "void buf_write_%s(u8 **buf, size_t *n, %s type)\n{\n", msg, msg);
+			fprintf(c_fp, "\ndragonnet_buf_write_%s(buf, n, type);\n}\n\n", msg);
 			fprintf(c_fp, "void dragonnet_buf_write_%s(u8 **buf, size_t *n, %s type)\n{\n", msg, msg);
 		} else {
 			char **tokens;
@@ -781,6 +784,8 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 
 			msg = msgs[i];
 			fprintf(h_fp, "%s dragonnet_buf_read_%s(u8 **buf, size_t *n);\n", msg, msg);
+			fprintf(c_fp, FUNC "%s buf_read_%s(u8 **buf, size_t *n){\n", msg, msg);
+			fprintf(c_fp, "\treturn dragonnet_buf_read_%s(buf, n);\n}\n\n", msg);
 			fprintf(c_fp, "%s dragonnet_buf_read_%s(u8 **buf, size_t *n)\n{\n", msg, msg);
 			fprintf(c_fp, "\t%s type = {0};\n", msg);
 		} else {
