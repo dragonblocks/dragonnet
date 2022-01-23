@@ -35,6 +35,40 @@ static void free_split(char **strs, size_t n)
 	free(strs);
 }
 
+#define INDENT for (size_t i = 0; i < lvls + 1; i++) fprintf(fp, "\t")
+
+static char *process_array(FILE *fp, char *src)
+{
+	size_t lvls = 0;
+
+	size_t len = 1;
+	char *str = malloc(1);
+
+	*str = '\0';
+
+	for (; *src != '\0'; src++) {
+		if (*src == '[') {
+			*src++ = '\0';
+
+			size_t arrlen;
+			src += sscanf(src, "%lu", &arrlen);
+
+			INDENT; fprintf(fp, "for (size_t i%lu = 0; i%lu < %lu; i%lu++)\n", lvls, lvls, arrlen, lvls);
+
+			char *buf;
+			str = realloc(str, len += asprintf(&buf, "[i%lu]", lvls));
+			strcat(str, buf);
+			free(buf);
+
+			lvls++;
+		}
+	}
+
+	INDENT; return str;
+}
+
+#undef INDENT
+
 // Socket based
 
 static void gen_serializers(FILE *c_fp)
@@ -553,6 +587,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 	fprintf(c_fp, "#include <dragonnet/recv.h>\n");
 	fprintf(c_fp, "#include <dragonnet/send.h>\n");
 	fprintf(c_fp, "#include <endian.h/endian.h>\n");
+	fprintf(c_fp, "#include <stdbool.h>\n");
 	fprintf(c_fp, "#include <stdlib.h>\n");
 	fprintf(c_fp, "#include <string.h>\n");
 	fprintf(c_fp, "#include <zlib.h>\n\n");
@@ -613,12 +648,15 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 				fprintf(c_fp, "}\n\n");
 
 			msg = msgs[i];
-			fprintf(c_fp, FUNC "void send_%s(DragonnetPeer *p, %s type)\n{\n", msg, msg);
+			fprintf(c_fp, FUNC "void send_%s(DragonnetPeer *p, bool submit, %s type)\n{\n", msg, msg);
 		} else {
 			char **tokens;
 			size_t tokens_len = split(&tokens, msgs[i], " ");
 
-			fprintf(c_fp, "\tsend_%s(p, false, type.%s);\n", &tokens[0][1], tokens[1]);
+			char *arr = process_array(c_fp, tokens[1]);
+			fprintf(c_fp, "send_%s(p, %s, type.%s%s);\n", &tokens[0][1], (i == msgs_len - 1 || msgs[i + 1][0] != '\t') ? "submit" : "false", tokens[1], arr);
+			free(arr);
+
 			free_split(tokens, tokens_len);
 			tokens = NULL;
 		}
@@ -648,10 +686,12 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 			char **tokens;
 			size_t tokens_len = split(&tokens, msgs[i], " ");
 
+			char *arr = process_array(c_fp, tokens[1]);
 			if (i >= msgs_len-1 || msgs[1+i][0] != '\t')
-				fprintf(c_fp, "\tsend_%s(p, true, type->%s);\n", &tokens[0][1], tokens[1]);
+				fprintf(c_fp, "send_%s(p, true, type->%s%s);\n", &tokens[0][1], tokens[1], arr);
 			else
-				fprintf(c_fp, "\tsend_%s(p, false, type->%s);\n", &tokens[0][1], tokens[1]);
+				fprintf(c_fp, "send_%s(p, false, type->%s%s);\n", &tokens[0][1], tokens[1], arr);
+			free(arr);
 
 			free_split(tokens, tokens_len);
 			tokens = NULL;
@@ -677,26 +717,35 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 			char type[strlen(&tokens[0][1])];
 			strcpy(type, &tokens[0][1]);
 
-			for (size_t bits = 8; bits <= 64; bits *= 2) {
-				const char *fmt[] = {"u%d", "s%d", "f%d"};
-				for (size_t j = 0; j < sizeof fmt / sizeof *fmt; ++j) {
-					char *cmp;
-					asprintf(&cmp, fmt[j], bits);
+			for (char *tptr = type; *tptr != '\0'; tptr++) {
+				for (size_t bits = 8; bits <= 64; bits *= 2) {
+					const char *fmt[] = {"u%d", "s%d", "f%d"};
+					for (size_t j = 0; j < sizeof fmt / sizeof *fmt; ++j) {
+						char *cmp;
+						asprintf(&cmp, fmt[j], bits);
+						size_t diff = strcmp(tptr, cmp);
+						free(cmp);
 
-					if (strcmp(type, cmp) == 0)
-						sprintf(type, "n%ld", bits);
-
-					free(cmp);
+						if (diff == 0) {
+							sprintf(tptr, "n%ld", bits);
+							goto n_done;
+						}
+					}
 				}
 			}
 
-			fprintf(c_fp, "\trecv_%s(p, &type->%s);\n", type, tokens[1]);
+			n_done: (void) 0;
+
+			char *arr = process_array(c_fp, tokens[1]);
+			fprintf(c_fp, "recv_%s(p, &type->%s%s);\n", type, tokens[1], arr);
+			free(arr);
+
 			free_split(tokens, tokens_len);
 			tokens = NULL;
 		}
 	}
 
-	fprintf(c_fp, "}\n");
+	fprintf(c_fp, "}\n\n");
 	msg = NULL;
 
 	// Buffer (de)serialization
@@ -711,7 +760,9 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 			char **tokens;
 			size_t tokens_len = split(&tokens, msgs[i], " ");
 
-			fprintf(c_fp, "\tbuf_write_%s(buf, n, type.%s);\n", &tokens[0][1], tokens[1]);
+			char *arr = process_array(c_fp, tokens[1]);
+			fprintf(c_fp, "buf_write_%s(buf, n, type.%s%s);\n", &tokens[0][1], tokens[1], arr);
+			free(arr);
 
 			free_split(tokens, tokens_len);
 			tokens = NULL;
@@ -736,7 +787,10 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 			char **tokens;
 			size_t tokens_len = split(&tokens, msgs[i], " ");
 
-			fprintf(c_fp, "\ttype.%s = buf_read_%s(buf, n);\n", tokens[1], &tokens[0][1]);
+			char *arr = process_array(c_fp, tokens[1]);
+			fprintf(c_fp, "type.%s%s = buf_read_%s(buf, n);\n", tokens[1], arr, &tokens[0][1]);
+			free(arr);
+
 			free_split(tokens, tokens_len);
 			tokens = NULL;
 		}
