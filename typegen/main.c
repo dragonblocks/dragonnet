@@ -708,7 +708,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 			}
 
 			msg = msgs[i];
-			fprintf(c_fp, FUNC "void dragonnet_peer_recv_%s(DragonnetPeer *p, void *buf)\n{\n", msg);
+			fprintf(c_fp, FUNC "void recv_%s(DragonnetPeer *p, void *buf)\n{\n", msg);
 			fprintf(c_fp, "\t%s *type = (%s *) buf;\n", msg, msg);
 		} else {
 			char **tokens;
@@ -830,7 +830,7 @@ int main(__attribute((unused)) int argc, __attribute((unused)) char **argv)
 
 		fprintf(c_fp, "\t{\n");
 		fprintf(c_fp, "\t\t.siz = sizeof(%s),\n", msgs[i]);
-		fprintf(c_fp, "\t\t.deserialize = &dragonnet_peer_recv_%s\n", msgs[i]);
+		fprintf(c_fp, "\t\t.deserialize = &recv_%s\n", msgs[i]);
 		fprintf(c_fp, "\t},\n");
 	}
 
