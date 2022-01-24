@@ -21,10 +21,3 @@ void dragonnet_send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n
 		dragonnet_peer_delete(p);
 	}
 }
-
-void dragonnet_write_raw(u8 **buf, size_t *n, const void *data, size_t len)
-{
-	*buf = realloc(*buf, len + *n);
-	memcpy(&((*buf)[*n]), data, len);
-	*n += len;
-}
