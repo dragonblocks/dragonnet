@@ -2,7 +2,6 @@
 #include <dragonnet/peer.h>
 #include <dragonnet/recv.h>
 #include <dragonnet/recv_thread.h>
-#include <dragontype/number.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -18,7 +17,7 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 	pthread_rwlock_unlock(&p->mu);
 
 	while (true) {
-		u16 type_id;
+		DragonnetTypeId type_id;
 
 		// Copy socket fd so that shutdown doesn't block
 		pthread_rwlock_rdlock(&p->mu);
@@ -46,11 +45,11 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 
 		type_id = be16toh(type_id);
 		DragonnetType type = dragonnet_types[type_id];
-		u8 buf[type.siz];
+		unsigned char buf[type.siz];
 		type.deserialize(p, buf);
 
 		pthread_rwlock_rdlock(&p->mu);
-		bool (*on_recv)(struct dragonnet_peer *, u16, void *) = p->on_recv;
+		bool (*on_recv)(struct dragonnet_peer *, DragonnetTypeId, void *) = p->on_recv;
 		void (*on_recv_type)(DragonnetPeer *, void *) = p->on_recv_type[type_id];
 		pthread_rwlock_unlock(&p->mu);
 

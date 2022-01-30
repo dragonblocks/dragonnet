@@ -47,7 +47,7 @@ DragonnetPeer *dragonnet_connect(char *addr)
 	return p;
 }
 
-void dragonnet_peer_set_recv_hook(DragonnetPeer *p, u16 type_id,
+void dragonnet_peer_set_recv_hook(DragonnetPeer *p, DragonnetTypeId type_id,
 		void (*on_recv)(struct dragonnet_peer *, void *))
 {
 	pthread_rwlock_rdlock(&p->mu);

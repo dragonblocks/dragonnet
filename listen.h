@@ -24,7 +24,7 @@ typedef struct {
 
 DragonnetListener *dragonnet_listener_new(char *addr,
 		void (*on_connect)(DragonnetPeer *p));
-void dragonnet_listener_set_recv_hook(DragonnetListener *l, u16 type_id,
+void dragonnet_listener_set_recv_hook(DragonnetListener *l, DragonnetTypeId type_id,
 		void (*on_recv)(struct dragonnet_peer *, void *));
 void dragonnet_listener_run(DragonnetListener *l);
 void dragonnet_listener_close(DragonnetListener *l);

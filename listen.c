@@ -82,7 +82,7 @@ DragonnetListener *dragonnet_listener_new(char *addr,
 	return l;
 }
 
-void dragonnet_listener_set_recv_hook(DragonnetListener *l, u16 type_id,
+void dragonnet_listener_set_recv_hook(DragonnetListener *l, DragonnetTypeId type_id,
 		void (*on_recv)(struct dragonnet_peer *, void *))
 {
 	pthread_rwlock_rdlock(&l->mu);
