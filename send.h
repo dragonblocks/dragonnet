@@ -4,6 +4,6 @@
 #include <dragonnet/peer.h>
 #include <stdbool.h>
 
-void dragonnet_send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n);
+bool dragonnet_send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n);
 
 #endif

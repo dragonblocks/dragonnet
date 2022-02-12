@@ -4,27 +4,13 @@
 #include <string.h>
 #include <unistd.h>
 
-void dragonnet_recv_raw(DragonnetPeer *p, void *buf, size_t n)
+bool dragonnet_recv_raw(DragonnetPeer *p, void *buf, size_t n)
 {
-	pthread_rwlock_rdlock(&p->mu);
-	int sock = p->sock;
-	pthread_rwlock_unlock(&p->mu);
-
-	ssize_t len = recv(sock, buf, n, MSG_WAITALL);
+	ssize_t len = recv(p->sock, buf, n, MSG_WAITALL);
 	if (len < 0) {
 		perror("recv");
-		dragonnet_peer_delete(p);
-		return;
+		exit(EXIT_FAILURE);
 	}
 
-	// Connection closed
-	if (len == 0) {
-		pthread_rwlock_wrlock(&p->mu);
-
-		close(p->sock);
-		p->sock = -1;
-		p->state++;
-
-		pthread_rwlock_unlock(&p->mu);
-	}
+	return len != 0;
 }

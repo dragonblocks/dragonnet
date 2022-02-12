@@ -6,31 +6,23 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum {
-	DRAGONNET_PEER_CREATED,
-	DRAGONNET_PEER_ACTIVE,
-	DRAGONNET_PEER_CLOSED
-} DragonnetPeerState;
-
 typedef uint16_t DragonnetTypeId;
 
 typedef struct dragonnet_peer {
 	int sock;
 	DragonnetAddr laddr, raddr;
-	DragonnetPeerState state;
 	pthread_t recv_thread;
+	pthread_mutex_t mtx;
 
+	void (*on_disconnect)(struct dragonnet_peer *);
 	bool (*on_recv)(struct dragonnet_peer *, DragonnetTypeId, void *);
 	void (**on_recv_type)(struct dragonnet_peer *, void *);
 
-	pthread_rwlock_t mu;
+	void *extra;
 } DragonnetPeer;
 
 DragonnetPeer *dragonnet_connect(char *addr);
-void dragonnet_peer_set_recv_hook(DragonnetPeer *p, DragonnetTypeId type_id,
-		void (*on_recv)(struct dragonnet_peer *, void *));
 void dragonnet_peer_run(DragonnetPeer *p);
-void dragonnet_peer_close(DragonnetPeer *p);
-void dragonnet_peer_delete(DragonnetPeer *p);
+void dragonnet_peer_shutdown(DragonnetPeer *p);
 
 #endif

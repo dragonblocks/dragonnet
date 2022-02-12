@@ -4,20 +4,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-void dragonnet_send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n)
+bool dragonnet_send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n)
 {
-	pthread_rwlock_rdlock(&p->mu);
-	int sock = p->sock;
-	pthread_rwlock_unlock(&p->mu);
+	ssize_t len = send(p->sock, buf, n, MSG_NOSIGNAL | (submit ? 0 : MSG_MORE));
 
-	ssize_t len = send(sock, buf, n, MSG_NOSIGNAL | (submit ? 0 : MSG_MORE));
 	if (len < 0) {
-		if (errno == EPIPE) {
-			dragonnet_peer_close(p);
-			return;
+		if (errno == ECONNRESET || errno == EPIPE || errno == ETIMEDOUT) {
+			shutdown(p->sock, SHUT_RDWR);
+			pthread_mutex_unlock(&p->mtx);
+			return false;
 		}
 
 		perror("send");
-		dragonnet_peer_delete(p);
+		exit(EXIT_FAILURE);
 	}
+
+	if (submit)
+		pthread_mutex_unlock(&p->mtx);
+
+	return true;
 }

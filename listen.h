@@ -4,28 +4,21 @@
 #include <dragonnet/peer.h>
 #include <stdbool.h>
 
-typedef enum {
-	DRAGONNET_LISTENER_CREATED,
-	DRAGONNET_LISTENER_ACTIVE,
-	DRAGONNET_LISTENER_CLOSED
-} DragonnetListenerState;
-
 typedef struct {
 	int sock;
 	DragonnetAddr laddr;
-	DragonnetListenerState state;
 	pthread_t accept_thread;
+	bool active;
 
 	void (*on_connect)(DragonnetPeer *);
+	void (*on_disconnect)(DragonnetPeer *);
+	bool (*on_recv)(DragonnetPeer *, DragonnetTypeId, void *);
 	void (**on_recv_type)(DragonnetPeer *, void *);
 
 	pthread_rwlock_t mu;
 } DragonnetListener;
 
-DragonnetListener *dragonnet_listener_new(char *addr,
-		void (*on_connect)(DragonnetPeer *p));
-void dragonnet_listener_set_recv_hook(DragonnetListener *l, DragonnetTypeId type_id,
-		void (*on_recv)(struct dragonnet_peer *, void *));
+DragonnetListener *dragonnet_listener_new(char *addr);
 void dragonnet_listener_run(DragonnetListener *l);
 void dragonnet_listener_close(DragonnetListener *l);
 void dragonnet_listener_delete(DragonnetListener *l);

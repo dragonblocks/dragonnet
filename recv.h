@@ -5,12 +5,13 @@
 
 typedef struct {
 	size_t siz;
-	void (*deserialize)(DragonnetPeer *, void *);
+	bool (*deserialize)(DragonnetPeer *, void *);
+	void (*free)(void *);
 } DragonnetType;
 
 extern DragonnetTypeId dragonnet_num_types;
 extern DragonnetType dragonnet_types[];
 
-void dragonnet_recv_raw(DragonnetPeer *p, void *buf, size_t n);
+bool dragonnet_recv_raw(DragonnetPeer *p, void *buf, size_t n);
 
 #endif
