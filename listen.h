@@ -14,8 +14,6 @@ typedef struct {
 	void (*on_disconnect)(DragonnetPeer *);
 	bool (*on_recv)(DragonnetPeer *, DragonnetTypeId, void *);
 	void (**on_recv_type)(DragonnetPeer *, void *);
-
-	pthread_rwlock_t mu;
 } DragonnetListener;
 
 DragonnetListener *dragonnet_listener_new(char *addr);

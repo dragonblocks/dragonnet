@@ -1,7 +1,9 @@
 #include <assert.h>
 #include <dragonnet/listen.h>
 #include <dragonnet/recv.h>
+#include <errno.h>
 #include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -46,7 +48,6 @@ static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
 DragonnetListener *dragonnet_listener_new(char *addr)
 {
 	DragonnetListener *l = malloc(sizeof *l);
-	pthread_rwlock_init(&l->mu, NULL);
 
 	l->active = true;
 	l->sock = socket(AF_INET6, SOCK_STREAM, 0);
@@ -89,13 +90,10 @@ static void *listener_main(void *g_listener)
 		struct sockaddr_in6 clt_addr;
 		socklen_t clt_addrlen = sizeof clt_addr;
 
-		pthread_rwlock_rdlock(&l->mu);
-		int sock = l->sock;
-		pthread_rwlock_unlock(&l->mu);
-
-		int clt_sock = accept(sock, (struct sockaddr *) &clt_addr, &clt_addrlen);
+		int clt_sock = accept(l->sock, (struct sockaddr *) &clt_addr, &clt_addrlen);
 		if (clt_sock < 0) {
-			perror("accept");
+			if (errno != EINTR)
+				perror("accept");
 			continue;
 		}
 
@@ -103,9 +101,7 @@ static void *listener_main(void *g_listener)
 		if (p == NULL)
 			continue;
 
-		pthread_rwlock_rdlock(&l->mu);
 		void (*on_connect)(DragonnetPeer *) = l->on_connect;
-		pthread_rwlock_unlock(&l->mu);
 
 		if (on_connect != NULL)
 			on_connect(p);
@@ -124,12 +120,13 @@ void dragonnet_listener_run(DragonnetListener *l)
 void dragonnet_listener_close(DragonnetListener *l)
 {
 	l->active = false;
-	pthread_cancel(l->accept_thread);
+
+	pthread_kill(l->accept_thread, SIGINT);
 	pthread_join(l->accept_thread, NULL);
 }
 
 void dragonnet_listener_delete(DragonnetListener *l)
 {
-	pthread_rwlock_destroy(&l->mu);
+	free(l->on_recv_type);
 	free(l);
 }
