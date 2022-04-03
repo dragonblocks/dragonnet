@@ -1,8 +1,10 @@
+#define _GNU_SOURCE
 #include <assert.h>
 #include <dragonnet/peer.h>
 #include <dragonnet/recv.h>
 #include <dragonnet/recv_thread.h>
 #include <errno.h>
+#include <features.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -12,6 +14,10 @@
 
 void *dragonnet_peer_recv_thread(void *g_peer)
 {
+#ifdef __GLIBC__
+	pthread_setname_np(pthread_self(), "recv");
+#endif
+
 	DragonnetPeer *p = (DragonnetPeer *) g_peer;
 
 	while (true) {

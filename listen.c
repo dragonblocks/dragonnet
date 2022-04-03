@@ -1,7 +1,9 @@
+#define _GNU_SOURCE
 #include <assert.h>
 #include <dragonnet/listen.h>
 #include <dragonnet/recv.h>
 #include <errno.h>
+#include <features.h>
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
@@ -84,6 +86,10 @@ DragonnetListener *dragonnet_listener_new(char *addr)
 
 static void *listener_main(void *g_listener)
 {
+#ifdef __GLIBC__
+	pthread_setname_np(pthread_self(), "listen");
+#endif
+
 	DragonnetListener *l = (DragonnetListener *) g_listener;
 
 	while (l->active) {
