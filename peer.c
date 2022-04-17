@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <dragonnet/addr.h>
 #include <dragonnet/peer.h>
 #include <dragonnet/recv.h>
 #include <dragonnet/recv_thread.h>
@@ -10,28 +11,25 @@ static bool dragonnet_peer_init(DragonnetPeer *p, char *addr)
 {
 	pthread_mutex_init(&p->mtx, NULL);
 
-	p->sock = socket(AF_INET6, SOCK_STREAM, 0);
-	p->raddr = dragonnet_addr_parse_str(addr);
-	p->on_disconnect = NULL;
-	p->on_recv = NULL;
-	p->on_recv_type = calloc(sizeof *p->on_recv_type, dragonnet_num_types);
+	struct addrinfo *info = dragonnet_str2addr(addr);
+	if (!info)
+		return false;
 
-	struct sockaddr_in6 sock_addr = dragonnet_addr_sock(p->raddr);
-	if (connect(p->sock, (const struct sockaddr *) &sock_addr,
-			sizeof sock_addr) < 0) {
+	p->sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+	p->address = dragonnet_addr2str(info->ai_addr, info->ai_addrlen);
+
+	if (connect(p->sock, info->ai_addr, info->ai_addrlen) < 0) {
+		freeaddrinfo(info);
 		perror("connect");
 		return false;
 	}
 
-	struct sockaddr_in6 sock_name;
-	socklen_t sock_namelen = sizeof sock_name;
+	freeaddrinfo(info);
 
-	if (getsockname(p->sock, (struct sockaddr *) &sock_name, &sock_namelen) < 0) {
-		perror("getsockname");
-		return false;
-	}
+	p->on_disconnect = NULL;
+	p->on_recv = NULL;
+	p->on_recv_type = calloc(sizeof *p->on_recv_type, dragonnet_num_types); // fixme: memory leak
 
-	p->laddr = dragonnet_addr_parse_sock(sock_name);
 	return true;
 }
 

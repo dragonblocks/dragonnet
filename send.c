@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 bool dragonnet_send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n)
 {

@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 void *dragonnet_peer_recv_thread(void *g_peer)
@@ -41,6 +43,7 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 				p->on_disconnect(p);
 
 			close(p->sock);
+			free(p->address);
 
 			pthread_mutex_destroy(&p->mtx);
 			free(p);

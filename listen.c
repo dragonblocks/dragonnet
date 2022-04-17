@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <assert.h>
+#include <dragonnet/addr.h>
 #include <dragonnet/listen.h>
 #include <dragonnet/recv.h>
 #include <errno.h>
@@ -16,13 +17,12 @@
 // ----
 
 static bool dragonnet_peer_init_accepted(DragonnetPeer *p, int sock,
-		struct sockaddr_in6 addr, DragonnetListener *l)
+		char *addr, DragonnetListener *l)
 {
 	pthread_mutex_init(&p->mtx, NULL);
 
 	p->sock = sock;
-	p->laddr = l->laddr;
-	p->raddr = dragonnet_addr_parse_sock(addr);
+	p->address = addr;
 	p->on_disconnect = l->on_disconnect;
 	p->on_recv = l->on_recv;
 	p->on_recv_type = l->on_recv_type;
@@ -30,13 +30,14 @@ static bool dragonnet_peer_init_accepted(DragonnetPeer *p, int sock,
 	return true;
 }
 
-static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
+static DragonnetPeer *dragonnet_peer_accept(int sock, char *addr,
 		DragonnetListener *l)
 {
 	DragonnetPeer *p = malloc(sizeof *p);
 	if (!dragonnet_peer_init_accepted(p, sock, addr, l)) {
 		pthread_mutex_destroy(&p->mtx);
 		free(p);
+		free(addr);
 		return NULL;
 	}
 
@@ -49,10 +50,15 @@ static DragonnetPeer *dragonnet_peer_accept(int sock, struct sockaddr_in6 addr,
 
 DragonnetListener *dragonnet_listener_new(char *addr)
 {
+	struct addrinfo *info = dragonnet_str2addr(addr);
+	if (!info)
+		return NULL;
+
 	DragonnetListener *l = malloc(sizeof *l);
 
 	l->active = true;
-	l->sock = socket(AF_INET6, SOCK_STREAM, 0);
+	l->sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+	l->address = dragonnet_addr2str(info->ai_addr, info->ai_addrlen);
 	l->on_connect = NULL;
 	l->on_disconnect = NULL;
 	l->on_recv = NULL;
@@ -62,18 +68,19 @@ DragonnetListener *dragonnet_listener_new(char *addr)
 	if (setsockopt(l->sock, SOL_SOCKET, SO_REUSEADDR, &so_reuseaddr,
 			sizeof so_reuseaddr) < 0) {
 		perror("setsockopt");
+		freeaddrinfo(info);
 		dragonnet_listener_delete(l);
 		return NULL;
 	}
 
-	l->laddr = dragonnet_addr_parse_str(addr);
-	struct sockaddr_in6 ai_addr = dragonnet_addr_sock(l->laddr);
-
-	if (bind(l->sock, (const struct sockaddr *) &ai_addr, sizeof ai_addr) < 0) {
+	if (bind(l->sock, info->ai_addr, info->ai_addrlen) < 0) {
 		perror("bind");
+		freeaddrinfo(info);
 		dragonnet_listener_delete(l);
 		return NULL;
 	}
+
+	freeaddrinfo(info);
 
 	if (listen(l->sock, 10) < 0) {
 		perror("listen");
@@ -93,8 +100,8 @@ static void *listener_main(void *g_listener)
 	DragonnetListener *l = (DragonnetListener *) g_listener;
 
 	while (l->active) {
-		struct sockaddr_in6 clt_addr;
-		socklen_t clt_addrlen = sizeof clt_addr;
+		struct sockaddr_storage clt_addr;
+		socklen_t clt_addrlen;
 
 		int clt_sock = accept(l->sock, (struct sockaddr *) &clt_addr, &clt_addrlen);
 		if (clt_sock < 0) {
@@ -103,7 +110,8 @@ static void *listener_main(void *g_listener)
 			continue;
 		}
 
-		DragonnetPeer *p = dragonnet_peer_accept(clt_sock, clt_addr, l);
+		char *clt_addstr =  dragonnet_addr2str((struct sockaddr *) &clt_addr, clt_addrlen);
+		DragonnetPeer *p = dragonnet_peer_accept(clt_sock, clt_addstr, l);
 		if (p == NULL)
 			continue;
 
@@ -134,5 +142,6 @@ void dragonnet_listener_close(DragonnetListener *l)
 void dragonnet_listener_delete(DragonnetListener *l)
 {
 	free(l->on_recv_type);
+	free(l->address);
 	free(l);
 }

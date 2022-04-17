@@ -1,7 +1,6 @@
 #ifndef _DRAGONNET_PEER_H_
 #define _DRAGONNET_PEER_H_
 
-#include <dragonnet/addr.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -10,7 +9,8 @@ typedef uint16_t DragonnetTypeId;
 
 typedef struct dragonnet_peer {
 	int sock;
-	DragonnetAddr laddr, raddr;
+	char *address;
+
 	pthread_t recv_thread;
 	pthread_mutex_t mtx;
 

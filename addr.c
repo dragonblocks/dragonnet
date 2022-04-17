@@ -1,56 +1,56 @@
-#include <asprintf/asprintf.h>
 #include <dragonnet/addr.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-DragonnetAddr dragonnet_addr_parse_str(char *str)
+struct addrinfo *dragonnet_str2addr(const char *str)
 {
-	DragonnetAddr addr = {0};
+	const char *port = str + strlen(str) - 1;
+	while (port >= str && *port != ':')
+		port--;
+	port++;
 
-	size_t colon_i = 0;
-	for (ssize_t i = strlen(str)-1; i >= 0; --i) {
-		if (str[i] == ':') {
-			colon_i = i;
-			break;
-		}
+	const char *host_begin = str;
+	if (*host_begin == '[')
+		host_begin++;
+
+	const char *host_end = port - 2;
+	if (host_end >= str && *host_end == ']')
+		host_end--;
+
+	ssize_t host_len = host_end - host_begin + 1;
+	if (host_len < 0)
+		host_len = 0;
+
+	char host[host_len + 1];
+	host[host_len] = '\0';
+	memcpy(host, host_begin, host_len);
+
+	struct addrinfo *result, hints = {0};
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	int err;
+	if ((err = getaddrinfo(host, port, &hints, &result))) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(err));
+		return NULL;
 	}
 
-	size_t ip_addr_i = 0, port_i = 0;
-	for (size_t i = 0; i < strlen(str); ++i) {
-		if (i < colon_i && str[i] != '[' && str[i] != ']')
-			addr.ip[ip_addr_i++] = str[i];
-		else if (i > colon_i)
-			addr.port[port_i++] = str[i];
+	return result;
+}
+
+char *dragonnet_addr2str(struct sockaddr *addr, socklen_t addr_len)
+{
+	char host[NI_MAXHOST], port[NI_MAXSERV];
+
+	int err;
+	if ((err = getnameinfo(addr, addr_len, host, NI_MAXHOST, port, NI_MAXSERV, NI_NUMERICSERV))) {
+		fprintf(stderr, "getnameinfo: %s\n", gai_strerror(err));
+		return NULL;
 	}
 
-	return addr;
-}
-
-char *dragonnet_addr_str(DragonnetAddr addr)
-{
-	char *ptr;
-	asprintf(&ptr, "[%s]:%s", addr.ip, addr.port);
-	return ptr;
-}
-
-DragonnetAddr dragonnet_addr_parse_sock(struct sockaddr_in6 ai_addr)
-{
-	DragonnetAddr addr = {0};
-	sprintf(addr.port, "%d", ntohs(ai_addr.sin6_port));
-	inet_ntop(AF_INET6, &ai_addr.sin6_addr, addr.ip, INET6_ADDRSTRLEN);
-
-	return addr;
-}
-
-struct sockaddr_in6 dragonnet_addr_sock(DragonnetAddr addr)
-{
-	struct sockaddr_in6 ai_addr = {0};
-	ai_addr.sin6_family = AF_INET6;
-	ai_addr.sin6_flowinfo = 0;
-	ai_addr.sin6_port = htons(atoi(addr.port));
-	inet_pton(AF_INET6, addr.ip, &ai_addr.sin6_addr);
-
-	return ai_addr;
+	char str[1 + strlen(host) + 1 + 1 + strlen(port) + 1];
+	sprintf(str, "[%s]:%s", host, port);
+	return strdup(str);
 }

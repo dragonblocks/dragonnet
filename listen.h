@@ -6,7 +6,8 @@
 
 typedef struct {
 	int sock;
-	DragonnetAddr laddr;
+	char *address;
+
 	pthread_t accept_thread;
 	bool active;
 
