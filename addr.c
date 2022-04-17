@@ -45,7 +45,7 @@ char *dragonnet_addr2str(struct sockaddr *addr, socklen_t addr_len)
 	char host[NI_MAXHOST], port[NI_MAXSERV];
 
 	int err;
-	if ((err = getnameinfo(addr, addr_len, host, NI_MAXHOST, port, NI_MAXSERV, NI_NUMERICSERV))) {
+	if ((err = getnameinfo(addr, addr_len, host, NI_MAXHOST, port, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV))) {
 		fprintf(stderr, "getnameinfo: %s\n", gai_strerror(err));
 		return NULL;
 	}

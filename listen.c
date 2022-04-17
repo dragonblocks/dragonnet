@@ -101,7 +101,7 @@ static void *listener_main(void *g_listener)
 
 	while (l->active) {
 		struct sockaddr_storage clt_addr;
-		socklen_t clt_addrlen;
+		socklen_t clt_addrlen = sizeof clt_addr;
 
 		int clt_sock = accept(l->sock, (struct sockaddr *) &clt_addr, &clt_addrlen);
 		if (clt_sock < 0) {
