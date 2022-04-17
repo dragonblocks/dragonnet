@@ -53,7 +53,7 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 		type_id = be16toh(type_id);
 
 		if (type_id >= dragonnet_num_types) {
-			fprintf(stderr, "warning: received invalid type id %d\n", type_id);
+			fprintf(stderr, "[warning] received invalid type id %d\n", type_id);
 			continue;
 		}
 
@@ -66,7 +66,7 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 			if (type.free != NULL)
 				type.free(buf);
 
-			fprintf(stderr, "warning: failed to deserialize package of type %d\n", type_id);
+			fprintf(stderr, "[warning] failed to deserialize package of type %d\n", type_id);
 
 			continue;
 		}
