@@ -33,7 +33,7 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 				reset = true;
 			} else {
 				perror("recv");
-				exit(EXIT_FAILURE);
+				abort();
 			}
 		}
 
