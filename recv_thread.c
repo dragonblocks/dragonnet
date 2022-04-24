@@ -3,16 +3,15 @@
 #include <dragonnet/peer.h>
 #include <dragonnet/recv.h>
 #include <dragonnet/recv_thread.h>
+#include <endian.h/endian.h>
 #include <errno.h>
-#include <features.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
+#include "sock.h"
 
 void *dragonnet_peer_recv_thread(void *g_peer)
 {
@@ -27,7 +26,7 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 
 		bool reset = false;
 
-		ssize_t len = recv(p->sock, &type_id, sizeof type_id, MSG_WAITALL);
+		ssize_t len = recv(p->sock, (void *) &type_id, sizeof type_id, MSG_WAITALL);
 		if (len < 0) {
 			if (errno == ECONNRESET || errno == EPIPE || errno == ETIMEDOUT) {
 				reset = true;

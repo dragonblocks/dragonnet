@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "sock.h"
 
 static bool dragonnet_peer_init(DragonnetPeer *p, char *addr)
 {

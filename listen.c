@@ -4,13 +4,10 @@
 #include <dragonnet/listen.h>
 #include <dragonnet/recv.h>
 #include <errno.h>
-#include <features.h>
-#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include "sock.h"
 
 // ----
 // Peer
@@ -65,7 +62,7 @@ DragonnetListener *dragonnet_listener_new(char *addr)
 	l->on_recv_type = calloc(sizeof *l->on_recv_type, dragonnet_num_types);
 
 	int so_reuseaddr = 1;
-	if (setsockopt(l->sock, SOL_SOCKET, SO_REUSEADDR, &so_reuseaddr,
+	if (setsockopt(l->sock, SOL_SOCKET, SO_REUSEADDR, (void *) &so_reuseaddr,
 			sizeof so_reuseaddr) < 0) {
 		perror("setsockopt");
 		freeaddrinfo(info);
