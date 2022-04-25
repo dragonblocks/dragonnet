@@ -1,12 +1,12 @@
 #define _GNU_SOURCE
 #include <assert.h>
-#include <dragonnet/addr.h>
-#include <dragonnet/listen.h>
-#include <dragonnet/recv.h>
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "addr.h"
+#include "listen.h"
+#include "recv.h"
 #include "sock.h"
 
 // ----

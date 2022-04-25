@@ -1,8 +1,8 @@
-#include <dragonnet/recv.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "recv.h"
 #include "sock.h"
 
 bool dragonnet_recv_raw(DragonnetPeer *p, void *buf, size_t n)

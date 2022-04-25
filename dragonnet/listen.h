@@ -1,8 +1,8 @@
 #ifndef _DRAGONNET_LISTEN_H_
 #define _DRAGONNET_LISTEN_H_
 
-#include <dragonnet/peer.h>
 #include <stdbool.h>
+#include "peer.h"
 
 typedef struct {
 	int sock;

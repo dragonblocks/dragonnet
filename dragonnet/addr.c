@@ -1,8 +1,8 @@
-#include <dragonnet/addr.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "addr.h"
 
 struct addrinfo *dragonnet_str2addr(const char *str)
 {

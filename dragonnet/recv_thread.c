@@ -1,9 +1,6 @@
 #define _GNU_SOURCE
 #include <assert.h>
-#include <dragonnet/peer.h>
-#include <dragonnet/recv.h>
-#include <dragonnet/recv_thread.h>
-#include <endian.h/endian.h>
+#include <endian.h>
 #include <errno.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -11,6 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "peer.h"
+#include "recv.h"
+#include "recv_thread.h"
 #include "sock.h"
 
 void *dragonnet_peer_recv_thread(void *g_peer)

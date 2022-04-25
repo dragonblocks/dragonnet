@@ -1,7 +1,7 @@
 #ifndef _DRAGONNET_RECV_H_
 #define _DRAGONNET_RECV_H_
 
-#include <dragonnet/peer.h>
+#include "peer.h"
 
 typedef struct {
 	size_t siz;

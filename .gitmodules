@@ -1,0 +1,3 @@
+[submodule "endian.h"]
+	path = endian.h
+	url = https://github.com/dragonblocks/endian.h

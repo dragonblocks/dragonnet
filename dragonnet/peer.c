@@ -1,11 +1,11 @@
 #include <assert.h>
-#include <dragonnet/addr.h>
-#include <dragonnet/peer.h>
-#include <dragonnet/recv.h>
-#include <dragonnet/recv_thread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "addr.h"
+#include "peer.h"
+#include "recv.h"
+#include "recv_thread.h"
 #include "sock.h"
 
 static bool dragonnet_peer_init(DragonnetPeer *p, char *addr)

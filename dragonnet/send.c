@@ -1,8 +1,8 @@
-#include <dragonnet/send.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "send.h"
 #include "sock.h"
 
 bool dragonnet_send_raw(DragonnetPeer *p, bool submit, const void *buf, size_t n)
