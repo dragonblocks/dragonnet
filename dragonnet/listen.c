@@ -53,8 +53,14 @@ DragonnetListener *dragonnet_listener_new(char *addr)
 
 	DragonnetListener *l = malloc(sizeof *l);
 
+	if ((l->sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) < 0) {
+		perror("socket");
+		freeaddrinfo(info);
+		free(l);
+		return NULL;
+	}
+
 	l->active = true;
-	l->sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
 	l->address = dragonnet_addr2str(info->ai_addr, info->ai_addrlen);
 	l->on_connect = NULL;
 	l->on_disconnect = NULL;

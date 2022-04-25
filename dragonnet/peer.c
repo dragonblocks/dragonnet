@@ -16,12 +16,16 @@ static bool dragonnet_peer_init(DragonnetPeer *p, char *addr)
 	if (!info)
 		return false;
 
-	p->sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol);
+	if ((p->sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) < 0) {
+		perror("socket");
+		freeaddrinfo(info);
+		return false;
+	}
 	p->address = dragonnet_addr2str(info->ai_addr, info->ai_addrlen);
 
 	if (connect(p->sock, info->ai_addr, info->ai_addrlen) < 0) {
-		freeaddrinfo(info);
 		perror("connect");
+		freeaddrinfo(info);
 		return false;
 	}
 
