@@ -26,7 +26,7 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 
 		bool reset = false;
 
-		ssize_t len = recv(p->sock, (void *) &type_id, sizeof type_id, MSG_WAITALL);
+		ssize_t len = dragonnet_recv_wrapper(p->sock, (void *) &type_id, sizeof type_id);
 		if (len < 0) {
 			if (dragonnet_isconnerr()) {
 				reset = true;
