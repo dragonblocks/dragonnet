@@ -16,5 +16,5 @@ bool dragonnet_recv_raw(DragonnetPeer *p, void *buf, size_t n)
 		abort();
 	}
 
-	return len != 0;
+	return len == (ssize_t) n;
 }

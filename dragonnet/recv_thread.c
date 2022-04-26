@@ -37,7 +37,7 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 		}
 
 		// Connection closed
-		if (len == 0 || reset) {
+		if (len != sizeof type_id || reset) {
 			if (p->on_disconnect)
 				p->on_disconnect(p);
 
