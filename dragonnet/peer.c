@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "addr.h"
+#include "error.h"
 #include "peer.h"
 #include "recv.h"
 #include "recv_thread.h"
@@ -17,14 +18,14 @@ static bool dragonnet_peer_init(DragonnetPeer *p, char *addr)
 		return false;
 
 	if ((p->sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) < 0) {
-		perror("socket");
+		dragonnet_perror("socket");
 		freeaddrinfo(info);
 		return false;
 	}
 	p->address = dragonnet_addr2str(info->ai_addr, info->ai_addrlen);
 
 	if (connect(p->sock, info->ai_addr, info->ai_addrlen) < 0) {
-		perror("connect");
+		dragonnet_perror("connect");
 		freeaddrinfo(info);
 		return false;
 	}

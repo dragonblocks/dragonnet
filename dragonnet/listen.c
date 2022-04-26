@@ -1,10 +1,10 @@
 #define _GNU_SOURCE
 #include <assert.h>
-#include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "addr.h"
+#include "error.h"
 #include "listen.h"
 #include "recv.h"
 #include "sock.h"
@@ -54,7 +54,7 @@ DragonnetListener *dragonnet_listener_new(char *addr)
 	DragonnetListener *l = malloc(sizeof *l);
 
 	if ((l->sock = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) < 0) {
-		perror("socket");
+		dragonnet_perror("socket");
 		freeaddrinfo(info);
 		free(l);
 		return NULL;
@@ -70,14 +70,14 @@ DragonnetListener *dragonnet_listener_new(char *addr)
 	int so_reuseaddr = 1;
 	if (setsockopt(l->sock, SOL_SOCKET, SO_REUSEADDR, (void *) &so_reuseaddr,
 			sizeof so_reuseaddr) < 0) {
-		perror("setsockopt");
+		dragonnet_perror("setsockopt");
 		freeaddrinfo(info);
 		dragonnet_listener_delete(l);
 		return NULL;
 	}
 
 	if (bind(l->sock, info->ai_addr, info->ai_addrlen) < 0) {
-		perror("bind");
+		dragonnet_perror("bind");
 		freeaddrinfo(info);
 		dragonnet_listener_delete(l);
 		return NULL;
@@ -86,7 +86,7 @@ DragonnetListener *dragonnet_listener_new(char *addr)
 	freeaddrinfo(info);
 
 	if (listen(l->sock, 10) < 0) {
-		perror("listen");
+		dragonnet_perror("listen");
 		dragonnet_listener_delete(l);
 		return NULL;
 	}
@@ -108,8 +108,8 @@ static void *listener_main(void *g_listener)
 
 		int clt_sock = accept(l->sock, (struct sockaddr *) &clt_addr, &clt_addrlen);
 		if (clt_sock < 0) {
-			if (errno != EINTR)
-				perror("accept");
+			if (!dragonnet_isintrerr())
+				dragonnet_perror("accept");
 			continue;
 		}
 

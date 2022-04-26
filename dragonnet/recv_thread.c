@@ -1,13 +1,13 @@
 #define _GNU_SOURCE
 #include <assert.h>
 #include <endian.h>
-#include <errno.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "error.h"
 #include "peer.h"
 #include "recv.h"
 #include "recv_thread.h"
@@ -28,10 +28,10 @@ void *dragonnet_peer_recv_thread(void *g_peer)
 
 		ssize_t len = recv(p->sock, (void *) &type_id, sizeof type_id, MSG_WAITALL);
 		if (len < 0) {
-			if (errno == ECONNRESET || errno == EPIPE || errno == ETIMEDOUT) {
+			if (dragonnet_isconnerr()) {
 				reset = true;
 			} else {
-				perror("recv");
+				dragonnet_perror("recv");
 				abort();
 			}
 		}

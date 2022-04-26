@@ -9,6 +9,7 @@ add_compile_options(
 
 add_library(dragonnet
 	dragonnet/addr.c
+	dragonnet/error.c
 	dragonnet/init.c
 	dragonnet/listen.c
 	dragonnet/peer.c
