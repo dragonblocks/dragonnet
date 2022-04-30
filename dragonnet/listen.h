@@ -10,6 +10,9 @@ typedef struct {
 
 	pthread_t accept_thread;
 	bool active;
+#ifndef _WIN32
+	int intr[2];
+#endif // _WIN32
 
 	void (*on_connect)(DragonnetPeer *);
 	void (*on_disconnect)(DragonnetPeer *);

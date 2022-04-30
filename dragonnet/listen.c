@@ -3,11 +3,14 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "addr.h"
 #include "error.h"
 #include "listen.h"
 #include "recv.h"
 #include "sock.h"
+
+#define mymax(a, b) ((a) > (b) ? (a) : (b))
 
 // ----
 // Peer
@@ -106,10 +109,34 @@ static void *listener_main(void *g_listener)
 		struct sockaddr_storage clt_addr;
 		socklen_t clt_addrlen = sizeof clt_addr;
 
+		struct timeval *tv = NULL;
+
+		fd_set set;
+		FD_ZERO(&set);
+		FD_SET(l->sock, &set);
+		int nfds = l->sock;
+
+#ifdef _WIN32
+		// on windows, we can't listen on the pipe, set timeout instead
+		tv = &(struct timeval) {1, 0};
+#else // _WIN32
+		FD_SET(l->intr[0], &set);
+
+		if (nfds < l->intr[0])
+			nfds = l->intr[0];
+#endif // _WIN32
+
+		if (select(nfds + 1, &set, NULL, NULL, tv) < 0) {
+			dragonnet_perror("select");
+			continue;
+		}
+
+		if (!FD_ISSET(l->sock, &set))
+			continue;
+
 		int clt_sock = accept(l->sock, (struct sockaddr *) &clt_addr, &clt_addrlen);
 		if (clt_sock < 0) {
-			if (!dragonnet_isintrerr())
-				dragonnet_perror("accept");
+			dragonnet_perror("accept");
 			continue;
 		}
 
@@ -131,6 +158,9 @@ static void *listener_main(void *g_listener)
 
 void dragonnet_listener_run(DragonnetListener *l)
 {
+#ifndef _WIN32
+	pipe(l->intr);
+#endif // _WIN32
 	pthread_create(&l->accept_thread, NULL, &listener_main, l);
 }
 
@@ -138,8 +168,13 @@ void dragonnet_listener_close(DragonnetListener *l)
 {
 	l->active = false;
 
-	pthread_kill(l->accept_thread, SIGINT);
+#ifndef _WIN32
+	close(l->intr[1]);
+#endif // _WIN32
 	pthread_join(l->accept_thread, NULL);
+#ifndef _WIN32
+	close(l->intr[0]);
+#endif // _WIN32
 }
 
 void dragonnet_listener_delete(DragonnetListener *l)
