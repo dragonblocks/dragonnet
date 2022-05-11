@@ -159,7 +159,10 @@ static void *listener_main(void *g_listener)
 void dragonnet_listener_run(DragonnetListener *l)
 {
 #ifndef _WIN32
-	pipe(l->intr);
+	if (pipe(l->intr) < 0) {
+		perror("pipe");
+		abort();
+	}
 #endif // _WIN32
 	pthread_create(&l->accept_thread, NULL, &listener_main, l);
 }
