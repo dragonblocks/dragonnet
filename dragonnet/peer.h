@@ -18,7 +18,7 @@ typedef struct dragonnet_peer {
 	bool (*on_recv)(struct dragonnet_peer *, DragonnetTypeId, void *);
 	void (**on_recv_type)(struct dragonnet_peer *, void *);
 
-	void *extra;
+	void *user;
 } DragonnetPeer;
 
 DragonnetPeer *dragonnet_connect(char *addr);
