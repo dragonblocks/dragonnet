@@ -4,7 +4,6 @@ project(Dragonnet)
 add_compile_options(
 	-Wall
 	-Wextra
-	-Werror
 )
 
 add_library(dragonnet
