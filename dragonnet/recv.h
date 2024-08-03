@@ -9,8 +9,8 @@ typedef struct {
 	void (*free)(void *);
 } DragonnetType;
 
-extern DragonnetTypeId dragonnet_num_types;
-extern DragonnetType dragonnet_types[];
+extern DragonnetTypeId dragonnet_num_types __attribute__((weak));
+extern DragonnetType dragonnet_types[] __attribute__((weak));
 
 bool dragonnet_recv_raw(DragonnetPeer *p, void *buf, size_t n);
 
