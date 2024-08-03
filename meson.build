@@ -27,8 +27,9 @@ dragonnet_lib = library('dragonnet',
 	]
 )
 
-dragonnet_dep = declare_dependency(
+
+meson.override_dependency('dragonnet', declare_dependency(
 	link_with: dragonnet_lib,
 	dependencies: deps,
 	include_directories: include,
-)
+))
