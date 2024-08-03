@@ -24,9 +24,9 @@ dragonnet_lib = library('dragonnet',
 	include_directories: [
 		include,
 		'endian.h',
-	]
+	],
+	install: true,
 )
-
 
 meson.override_dependency('dragonnet', declare_dependency(
 	link_with: dragonnet_lib,
