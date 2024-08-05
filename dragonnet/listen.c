@@ -68,7 +68,7 @@ DragonnetListener *dragonnet_listener_new(char *addr)
 	l->on_connect = NULL;
 	l->on_disconnect = NULL;
 	l->on_recv = NULL;
-	l->on_recv_type = calloc(sizeof *l->on_recv_type, dragonnet_num_types);
+	l->on_recv_type = calloc(dragonnet_num_types, sizeof *l->on_recv_type);
 
 	int so_reuseaddr = 1;
 	if (setsockopt(l->sock, SOL_SOCKET, SO_REUSEADDR, (void *) &so_reuseaddr,

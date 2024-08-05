@@ -34,7 +34,7 @@ static bool dragonnet_peer_init(DragonnetPeer *p, char *addr)
 
 	p->on_disconnect = NULL;
 	p->on_recv = NULL;
-	p->on_recv_type = calloc(sizeof *p->on_recv_type, dragonnet_num_types); // fixme: memory leak
+	p->on_recv_type = calloc(dragonnet_num_types, sizeof *p->on_recv_type); // fixme: memory leak
 
 	return true;
 }
