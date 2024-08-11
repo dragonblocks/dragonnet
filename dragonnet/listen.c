@@ -64,7 +64,7 @@ DragonnetListener *dragonnet_listener_new(char *addr)
 	}
 
 	l->active = true;
-	l->address = dragonnet_addr2str(info->ai_addr, info->ai_addrlen);
+	l->address = NULL;
 	l->on_connect = NULL;
 	l->on_disconnect = NULL;
 	l->on_recv = NULL;
@@ -94,6 +94,15 @@ DragonnetListener *dragonnet_listener_new(char *addr)
 		return NULL;
 	}
 
+	struct sockaddr_storage bound_addr;
+	socklen_t bound_addrlen = sizeof bound_addr;
+	if (getsockname(l->sock, (struct sockaddr *) &bound_addr, &bound_addrlen) < -1) {
+		dragonnet_perror("getsockname");
+		dragonnet_listener_delete(l);
+		return NULL;
+	}
+
+	l->address = dragonnet_addr2str((struct sockaddr *) &bound_addr, bound_addrlen);
 	return l;
 }
 
