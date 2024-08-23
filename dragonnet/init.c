@@ -6,7 +6,7 @@
 void dragonnet_init()
 {
 #ifdef _WIN32
-	printf("[info] initializing winsock\n");
+	fprintf(stderr, "[info] initializing winsock\n");
 
 	WSADATA wsa_data;
 	if (WSAStartup(0x202, &wsa_data) != 0) {
