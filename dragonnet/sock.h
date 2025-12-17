@@ -15,4 +15,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#ifndef MSG_MORE
+#define MSG_MORE 0
+#endif
 #endif
